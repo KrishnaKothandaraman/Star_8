@@ -119,6 +119,5 @@ class GoogleSheetsService:
         :return: List of strings representing the data in the column
         """
         response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID, range=f"{sheetName}!{column}:{column}").execute()
-        print(response)
-        return 1
+        return [item for item in response["values"]]
 

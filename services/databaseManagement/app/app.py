@@ -2,6 +2,8 @@ import sys
 import os
 
 # add root to paths
+import time
+
 sys.path.append(os.path.join(""))
 
 import json
@@ -23,6 +25,7 @@ SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
 
 @app.route('/update-bm-googlesheet', methods=['POST'])
 def updateBMGoogleSheet():
+    start = time.time()
     try:
         service = GoogleSheetsService()
     except Exception as e:
@@ -34,6 +37,9 @@ def updateBMGoogleSheet():
 
     try:
         returnData = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName="OrderS", column="A")
+        returnData = [item[0] for item in returnData[1:] if len(item) > 0]
+        end = time.time()
+        print(f"Time taken to handle this request {end - start}")
         return make_response(jsonify({"type": "success",
                                       "data": returnData
                                       }),
@@ -44,6 +50,7 @@ def updateBMGoogleSheet():
                                       }),
                              400)
     except Exception:
+        print(traceback.print_exc())
         return make_response(jsonify({"type": "fail",
                                       "message": "Contact support. Check server logs"
                                       }),
