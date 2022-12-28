@@ -1,18 +1,21 @@
 import io
-from typing import List, Dict
+from typing import List, Dict, Tuple
+import apiclient
+import googleapiclient.http
 from gdoctableapppy import gdoctableapp
 from googleapiclient.http import MediaIoBaseDownload
-
 from core.config.googleServiceConfiguration import GOOGLE_DRIVE_SERVICE_NAME, GOOGLE_SHEETS_SERVICE_NAME
 from core.google_services.googleAppServiceFactory import GoogleAppServiceFactory
 
 GOOGLE_SHEETS_STARTING_CELL = "A15"
 
-
+"""
+Docs: https://googleapis.github.io/google-api-python-client/docs/dyn/sheets_v4.spreadsheets.html#getByDataFilter
+"""
 class GoogleSheetsService:
     def __init__(self):
         self.driveService = GoogleAppServiceFactory.getGoogleAppService(GOOGLE_DRIVE_SERVICE_NAME)
-        self.sheetsService = GoogleAppServiceFactory.getGoogleAppService(GOOGLE_SHEETS_SERVICE_NAME)
+        self.sheetsService: apiclient.module.discovery.Resource = GoogleAppServiceFactory.getGoogleAppService(GOOGLE_SHEETS_SERVICE_NAME)
 
     def generateCopyFromTemplate(self, templateFileId, documentName='Document'):
         body = {'name': documentName}
@@ -106,3 +109,16 @@ class GoogleSheetsService:
             print(response)
         except errors.HttpError as e:
             print(e)
+
+    def getEntireColumnData(self, sheetID, sheetName, column):
+        """
+        Returns the column data for an entire column
+        :param sheetID: Spreadsheet ID
+        :param sheetName: Name of the particular sheet within the spreadsheet
+        :param column: Column name from A1 notation (see docs: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/get#:~:text=are%20specified%20using-,A1%20notation,-.%20You%20can%20define)
+        :return: List of strings representing the data in the column
+        """
+        response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID, range=f"{sheetName}!{column}:{column}").execute()
+        print(response)
+        return 1
+

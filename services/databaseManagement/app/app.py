@@ -18,6 +18,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
+SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
 
 
 @app.route('/update-bm-googlesheet', methods=['POST'])
@@ -31,58 +32,22 @@ def updateBMGoogleSheet():
                                       }),
                              400)
 
-    return make_response(jsonify({"type": "success",
-                                  "message": f"Hello world!"
-                                  }),
-                         200)
     try:
-        body = request.get_json()
-        if not body:
-            return make_response(jsonify({"type": "fail",
-                                          "message": "Invalid Json"
-                                          }),
-                                 400)
-    except ValueError:
+        returnData = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName="OrderS", column="A")
+        return make_response(jsonify({"type": "success",
+                                      "data": returnData
+                                      }),
+                             200)
+    except googleapiclient.errors.HttpError as e:
         return make_response(jsonify({"type": "fail",
-                                      "message": "Expected content type application/json"
+                                      "message": e.reason
                                       }),
                              400)
-
-    try:
-        templateFileId = body["template_file_id"]
-        optionalParameters = body["optional_parameters"]
-        template_type = body["type"] if "type" in body else "docs"
-
-        if template_type != "sheets" and template_type != "docs":
-            return make_response(jsonify({"type": "fail",
-                                          "message": f"Unsupported type, expected docs/sheets"
-                                          }),
-                                 400)
-    except KeyError as e:
+    except Exception:
         return make_response(jsonify({"type": "fail",
-                                      "message": f"Missing Parameter {e.args[0]}"
+                                      "message": "Contact support. Check server logs"
                                       }),
                              400)
-
-    try:
-        orders = body["order"]
-    except:
-        orders = None
-
-    try:
-        if template_type == "docs":
-            service = GoogleDocsService()
-
-        else:
-            service = GoogleSheetsService()
-
-        templateCopyID = service.generateCopyFromTemplate(templateFileId=templateFileId)
-
-        if incompatibleFileTypeProvided(templateFileId, template_type, service):
-            return make_response(jsonify({"type": "fail",
-                                          "message": f"Incompatible type provided for template_file_id"
-                                          }),
-                                 400)
 
         # replaces all optional parameters
         replaceTextRequests = service.makeReplaceTextRequests(data=optionalParameters)
