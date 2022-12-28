@@ -1,5 +1,5 @@
 # CREDENTIALS
-GOOGLE_VISION_KEY_PATH = ""
+GOOGLE_VISION_KEY_PATH = "services/databaseManagement/serviceAccountCredentials.json"
 
 
 # DRIVE
@@ -15,3 +15,4 @@ THIRD_PARTY_LEAD_EMAIL_ID = ""
 # SHEETS
 GOOGLE_SHEETS_SERVICE_NAME = "sheets"
 GOOGLE_SHEETS_API_VERSION = "v1"
+GOOGLE_SHEETS_SCOPES = ['https://www.googleapis.com/auth/spreadsheets']

@@ -1,5 +1,10 @@
-import json
+import sys
 import os
+
+# add root to paths
+sys.path.append(os.path.join(""))
+
+import json
 import traceback
 from flask_cors import CORS, cross_origin
 import googleapiclient.errors
@@ -17,6 +22,14 @@ GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
 
 @app.route('/update-bm-googlesheet', methods=['POST'])
 def updateBMGoogleSheet():
+    try:
+        service = GoogleSheetsService()
+    except Exception as e:
+        print(traceback.print_exc())
+        return make_response(jsonify({"type": "fail",
+                                      "message": "Failed to open Google Sheets. Check server logs for more info"
+                                      }),
+                             400)
 
     return make_response(jsonify({"type": "success",
                                   "message": f"Hello world!"
@@ -114,3 +127,10 @@ def updateBMGoogleSheet():
                                       "message": "Internal Server Error",
                                       }),
                              500)
+
+
+if __name__ == '__main__':
+    # **** if you run locally without dockerfile, uncomment the below lines *****
+    # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(os.getcwd(), "../helloar-analytics-d4298ceae005.json")
+    # os.environ["SENDGRID_API_KEY"] = "<enter api key here>"
+    app.run(port=5001)
