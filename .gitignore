@@ -1,3 +1,4 @@
 services/databaseManagement/serviceAccountCredentials.json
 get_order_history.py
 data/
+*.pyc
