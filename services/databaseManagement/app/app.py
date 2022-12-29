@@ -1,8 +1,12 @@
 import sys
 import os
-# add root to paths
-sys.path.append(os.path.join(""))
 
+# add root to paths
+from typing import Dict
+
+from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
+
+sys.path.append(os.path.join(""))
 
 import time
 import json
@@ -21,6 +25,18 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
 SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
+SPREADSHEET_NAME = "OrderS"
+
+
+def flattenDict(dictToFlatten) -> Dict:
+    returnDict = {}
+    for key in dictToFlatten:
+        if type(dictToFlatten[key]) == dict:
+            for key2 in dictToFlatten[key]:
+                returnDict[key2] = dictToFlatten[key][key2]
+        else:
+            returnDict[key] = dictToFlatten[key]
+    return returnDict
 
 
 @app.route('/update-bm-googlesheet', methods=['POST'])
@@ -36,23 +52,48 @@ def updateBMGoogleSheet():
                              400)
 
     try:
-        googleSheetItems = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName="OrderS", column="A")
-        googleSheetItems = {item[0] for item in googleSheetItems[1:] if len(item) > 0}
+        googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME, column="A")
+        googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
         BMAPIInstance = BackmarketAPI()
         newOrders = BMAPIInstance.getOrdersFromToday()
         ordersToBeAdded = []
         for order in newOrders:
-            if order["order_id"] not in googleSheetItems:
-                print(f"{order['order_id']} not in google sheet!")
+            if str(order["order_id"]) not in googleSheetOrderIDs:
                 ordersToBeAdded.append(order)
+        """
+        Step 1 is to flatten everything except the orderlines
+        """
+        # contains flattened order list to upload to sheets
+        flattenedOrderList = []
 
+        # for each order that may contain multiple orderlines
+        for order in ordersToBeAdded:
+            # for each orderline in an order
+            for i, _ in enumerate(order["orderlines"]):
+                singleFlatOrder = []
+                for key, item in order.items():
+
+                    if key != "orderlines":
+                        if type(item) != dict:
+                            singleFlatOrder.append(item)
+                        else:
+                            for _, val in item.items():
+                                singleFlatOrder.append(val)
+
+                    else:
+                        for _, val in order["orderlines"][i].items():
+                            singleFlatOrder.append(val)
+                flattenedOrderList.append(singleFlatOrder)
+
+        service.appendValuesToBottomOfSheet(data=flattenedOrderList, sheetTitle=SPREADSHEET_NAME,
+                                            documentID=SPREADSHEET_ID)
         end = time.time()
 
         print(f"Time taken to handle this request {end - start}")
 
         return make_response(jsonify({"type": "success",
-                                      "data": []
+                                      "message": f"Added {len(flattenedOrderList)} records!"
                                       }),
                              200)
     except googleapiclient.errors.HttpError as e:
@@ -60,54 +101,15 @@ def updateBMGoogleSheet():
                                       "message": e.reason
                                       }),
                              400)
+    except IncorrectSheetTitleException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             400)
     except Exception:
         print(traceback.print_exc())
         return make_response(jsonify({"type": "fail",
                                       "message": "Contact support. Check server logs"
-                                      }),
-                             400)
-
-        # replaces all optional parameters
-        replaceTextRequests = service.makeReplaceTextRequests(data=optionalParameters)
-
-        service.executeBatchRequest(requests=replaceTextRequests, documentId=templateCopyID)
-
-        if orders != None:
-            # creates table
-            service.createTableFromOrders(orders=orders, documentID=templateCopyID)
-
-        # gets pdf binary
-        fileBytesIO = service.downloadDocument(fileId=templateCopyID)
-
-        response = make_response(fileBytesIO)
-
-        if template_type == "docs":
-            response.headers.set('Content-Type', 'application/pdf')
-            response.headers.set(
-                'Content-Disposition', 'attachment', filename="invoice.pdf")
-
-        else:
-            response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response.headers.set(
-                'Content-Disposition', 'attachment', filename="invoice.xlsx")
-
-        return response
-    except FileNotFoundError:
-        traceback.print_exc()
-        return make_response(jsonify({"type": "fail",
-                                      "message": "Internal server error"
-                                      }),
-                             500)
-    except googleapiclient.errors.HttpError as e:
-        traceback.print_exc()
-        return make_response(jsonify({"type": "fail",
-                                      "message": "Invalid template ID",
-                                      }),
-                             400)
-    except Exception as e:
-        traceback.print_exc()
-        return make_response(jsonify({"type": "fail",
-                                      "message": "Internal Server Error",
                                       }),
                              500)
 

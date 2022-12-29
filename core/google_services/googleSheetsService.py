@@ -1,3 +1,12 @@
+import sys
+import os
+
+# add root to paths
+sys.path.append(os.path.join(""))
+
+from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
+
+
 import io
 from typing import List, Dict, Tuple
 import apiclient
@@ -15,7 +24,8 @@ Docs: https://googleapis.github.io/google-api-python-client/docs/dyn/sheets_v4.s
 class GoogleSheetsService:
     def __init__(self):
         self.driveService = GoogleAppServiceFactory.getGoogleAppService(GOOGLE_DRIVE_SERVICE_NAME)
-        self.sheetsService: apiclient.module.discovery.Resource = GoogleAppServiceFactory.getGoogleAppService(GOOGLE_SHEETS_SERVICE_NAME)
+        self.sheetsService: apiclient.module.discovery.Resource = GoogleAppServiceFactory.getGoogleAppService(
+            GOOGLE_SHEETS_SERVICE_NAME)
 
     def generateCopyFromTemplate(self, templateFileId, documentName='Document'):
         body = {'name': documentName}
@@ -96,6 +106,46 @@ class GoogleSheetsService:
 
         return requests
 
+    @staticmethod
+    def getValueAsString(val):
+        if type(val) == int:
+            return str(val)
+
+        return str(val) if val else ""
+
+    def appendValuesToBottomOfSheet(self, data: List[List], documentID, sheetTitle):
+        """
+        List of Lists with each inner list containing a row of values to be appended
+        :param sheetTitle: Title of the sheet within the spreadsheet
+        :param documentID: ID of spreadsheet to append to
+        :param data: List of rows of values to be appended
+        :return:
+        """
+        spreadsheet = self.sheetsService.spreadsheets().get(spreadsheetId=documentID).execute()
+
+        sheetID = None
+
+        for sheet in spreadsheet["sheets"]:
+            if sheet["properties"]["title"] == sheetTitle:
+                sheetID = sheet["properties"]["sheetId"]
+
+        if not sheetID:
+            raise IncorrectSheetTitleException(f"Title {sheetTitle} not found in spreadsheet")
+
+        request = {"appendCells": {
+                        "fields": "*",
+                        "rows": [{
+                            "values": [{
+                                "userEnteredValue": {
+                                    "stringValue": self.getValueAsString(value)
+                                }
+                            }for value in row]
+                        } for row in data],
+                        "sheetId": sheetID
+                }
+            }
+        return self.executeBatchRequest(requests=request, documentId=documentID)
+
     def executeBatchRequest(self, requests, documentId):
         self.sheetsService.spreadsheets().batchUpdate(
             body={'requests': requests, "includeSpreadsheetInResponse": False},
@@ -118,6 +168,14 @@ class GoogleSheetsService:
         :param column: Column name from A1 notation (see docs: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/get#:~:text=are%20specified%20using-,A1%20notation,-.%20You%20can%20define)
         :return: List of strings representing the data in the column
         """
-        response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID, range=f"{sheetName}!{column}:{column}").execute()
+        response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID,
+                                                                  range=f"{sheetName}!{column}:{column}").execute()
+        return [item for item in response["values"]] if "values" in response else []
+
+    def getHeaderFromGoogleSheet(self, sheetID, sheetName):
+        response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID,
+                                                                  range=f"{sheetName}!1:1").execute()
         return [item for item in response["values"]]
 
+# a = GoogleSheetsService()
+# a.appendValuesToBottomOfSheet(sheetTitle="MyRand", documentID="1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys", data=[[1, 2, 3], [4, 5, {"a"}]])
