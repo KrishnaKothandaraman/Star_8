@@ -1,11 +1,10 @@
 import sys
 import os
-
 # add root to paths
-import time
-
 sys.path.append(os.path.join(""))
 
+
+import time
 import json
 import traceback
 from flask_cors import CORS, cross_origin
@@ -13,6 +12,7 @@ import googleapiclient.errors
 from flask import Flask, request, make_response, jsonify, send_file
 import requests
 from core.google_services.googleSheetsService import GoogleSheetsService
+from services.databaseManagement.marketplaces.backmarket import BackmarketAPI
 
 app = Flask(__name__)
 CORS(app)
@@ -36,12 +36,23 @@ def updateBMGoogleSheet():
                              400)
 
     try:
-        returnData = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName="OrderS", column="A")
-        returnData = [item[0] for item in returnData[1:] if len(item) > 0]
+        googleSheetItems = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName="OrderS", column="A")
+        googleSheetItems = {item[0] for item in googleSheetItems[1:] if len(item) > 0}
+
+        BMAPIInstance = BackmarketAPI()
+        newOrders = BMAPIInstance.getOrdersFromToday()
+        ordersToBeAdded = []
+        for order in newOrders:
+            if order["order_id"] not in googleSheetItems:
+                print(f"{order['order_id']} not in google sheet!")
+                ordersToBeAdded.append(order)
+
         end = time.time()
+
         print(f"Time taken to handle this request {end - start}")
+
         return make_response(jsonify({"type": "success",
-                                      "data": returnData
+                                      "data": []
                                       }),
                              200)
     except googleapiclient.errors.HttpError as e:
