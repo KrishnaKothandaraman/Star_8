@@ -1,13 +1,8 @@
 import sys
 import os
-
 # add root to paths
 from typing import Dict
-
 from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
-
-sys.path.append(os.path.join(""))
-
 import time
 import json
 import traceback
@@ -28,17 +23,6 @@ SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
 SPREADSHEET_NAME = "OrderS"
 
 
-def flattenDict(dictToFlatten) -> Dict:
-    returnDict = {}
-    for key in dictToFlatten:
-        if type(dictToFlatten[key]) == dict:
-            for key2 in dictToFlatten[key]:
-                returnDict[key2] = dictToFlatten[key][key2]
-        else:
-            returnDict[key] = dictToFlatten[key]
-    return returnDict
-
-
 @app.route('/update-bm-googlesheet', methods=['POST'])
 def updateBMGoogleSheet():
     start = time.time()
@@ -52,7 +36,8 @@ def updateBMGoogleSheet():
                              400)
 
     try:
-        googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME, column="A")
+        googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME,
+                                                          column="A")
         googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
         BMAPIInstance = BackmarketAPI()
@@ -71,6 +56,7 @@ def updateBMGoogleSheet():
         for order in ordersToBeAdded:
             # for each orderline in an order
             for i, _ in enumerate(order["orderlines"]):
+                # create a row
                 singleFlatOrder = []
                 for key, item in order.items():
 
@@ -81,6 +67,7 @@ def updateBMGoogleSheet():
                             for _, val in item.items():
                                 singleFlatOrder.append(val)
 
+                    # only add the current ith orderline to this row
                     else:
                         for _, val in order["orderlines"][i].items():
                             singleFlatOrder.append(val)
