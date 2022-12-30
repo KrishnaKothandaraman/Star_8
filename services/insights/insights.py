@@ -3,6 +3,7 @@ from typing import Tuple, List, Dict
 import json
 import os
 import sys
+import argparse
 sys.path.append("")
 from services.insights.api.rf import getRFOrdersAfterDate
 from services.insights.api.bm import getBMOrdersAfterDate
@@ -30,7 +31,7 @@ def aggregateAndGetInsightsRF(orders: List[Dict], insights):
         for orderline in order["items"]:
             sku: str = orderline["sku"]
             name: str = orderline["name"]
-            price: float = float(orderline["total_charged"])
+            price: float = float(orderline["settlement_total_paid"])
             product: str = sku[:6]
             grading: str = sku[6:]
 
@@ -113,10 +114,14 @@ def aggregateAndGetInsightsBackMarket(orders: List[Dict]):
 
 
 if __name__ == "__main__":
+    # To generate insights, simply run the command python3 insights.py -d <YYYY-MM-DD> to generate insights on all
+    # sales after the date -d
+    parser = argparse.ArgumentParser(description='Generate Insights for all sales after the specified date')
+    parser.add_argument('-d', type=str, help="YYYY-MM-DD format", required=True)
+    args = parser.parse_args()
     print("INFO: Started!")
 
-    date = "2022-12-29"
-
+    date = args.d
 
     datetime = date + " 00:00:00"
     start = time.time()
@@ -172,17 +177,18 @@ if __name__ == "__main__":
     #         ]
     insightList = [[f"'{sku}", insight["name"],
                     insight["count"], insight["BM"]["count"], insight["RF"]["count"],
-                    insight["average_price"], insight["BM"]["average_price"], insight["RF"]["average_price"],
-                    insight["BM"]["grading"]["SH"], insight["BM"]["pricing"]["SH"],
-                    insight["BM"]["grading"]["SL"], insight["BM"]["pricing"]["SL"],
-                    insight["BM"]["grading"]["BR"], insight["BM"]["pricing"]["BR"],
-                    insight["BM"]["grading"]["BR2"], insight["BM"]["pricing"]["BR2"],
-                    insight["BM"]["grading"]["SH2"], insight["BM"]["pricing"]["SH2"],
-                    insight["RF"]["grading"]["SH"], insight["RF"]["pricing"]["SH"],
-                    insight["RF"]["grading"]["SL"], insight["RF"]["pricing"]["SL"],
-                    insight["RF"]["grading"]["BR"], insight["RF"]["pricing"]["BR"],
-                    insight["RF"]["grading"]["BR2"], insight["RF"]["pricing"]["BR2"],
-                    insight["RF"]["grading"]["SH2"], insight["RF"]["pricing"]["SH2"],
+                    round(insight["average_price"], 2), round(insight["BM"]["average_price"], 2),
+                    round(insight["RF"]["average_price"], 2),
+                    insight["BM"]["grading"]["SH"], round(insight["BM"]["pricing"]["SH"], 2),
+                    insight["BM"]["grading"]["SL"], round(insight["BM"]["pricing"]["SL"], 2),
+                    insight["BM"]["grading"]["BR"], round(insight["BM"]["pricing"]["BR"], 2),
+                    insight["BM"]["grading"]["BR2"], round(insight["BM"]["pricing"]["BR2"], 2),
+                    insight["BM"]["grading"]["SH2"], round(insight["BM"]["pricing"]["SH2"], 2),
+                    insight["RF"]["grading"]["SH"], round(insight["RF"]["pricing"]["SH"], 2),
+                    insight["RF"]["grading"]["SL"], round(insight["RF"]["pricing"]["SL"], 2),
+                    insight["RF"]["grading"]["BR"], round(insight["RF"]["pricing"]["BR"], 2),
+                    insight["RF"]["grading"]["BR2"], round(insight["RF"]["pricing"]["BR2"], 2),
+                    insight["RF"]["grading"]["SH2"], round(insight["RF"]["pricing"]["SH2"], 2),
                     ] for (sku, insight) in insights.items()]
     with open(f"data/bm/insights/{date}/{date}.csv", "w") as f:
         writeToCSV(COLS, insightList, f)
