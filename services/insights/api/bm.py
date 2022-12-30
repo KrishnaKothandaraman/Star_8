@@ -19,6 +19,6 @@ def getBMOrdersAfterDate(date):
         nextURL = resp.json()["next"]
         numOrders += len(resp.json()["results"])
         orders += resp.json()["results"]
-        break
+
     print(f"{numOrders=}")
     return orders
