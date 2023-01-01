@@ -5,6 +5,7 @@ import os
 import sys
 import argparse
 import datetime
+
 sys.path.append("")
 from services.insights.api.rf import getRFOrdersBetweenDates
 from services.insights.api.bm import getBMOrdersBetweenDates
@@ -27,13 +28,29 @@ COLS = ["Model_SKU", "Product_name",
         ]
 GRADINGS = ['SH', 'SL', "BR", "SH2", "BR2"]
 
+BM_KEY_MAP = {
+    "platform": "BM",
+    "sku": "listing",
+    "orders": "orderlines",
+    "name": "product",
+    "price": "price"
+}
 
-def aggregateAndGetInsightsRF(orders: List[Dict], insights):
+RF_KEY_MAP = {
+    "platform": "RF",
+    "sku": "sku",
+    "orders": "items",
+    "name": "name",
+    "price": "settlement_total_paid"
+}
+
+
+def aggregateAndGetInsights(orders: List[Dict], insights: Dict, keyMap: Dict):
     for order in orders:
-        for orderline in order["items"]:
-            sku: str = orderline["sku"]
-            name: str = orderline["name"]
-            price: float = float(orderline["settlement_total_paid"])
+        for orderline in order[keyMap["orders"]]:
+            sku: str = orderline[keyMap["sku"]]
+            name: str = orderline[keyMap["name"]]
+            price: float = float(orderline[keyMap["price"]])
             product: str = sku[:6]
             grading: str = sku[6:]
 
@@ -50,12 +67,12 @@ def aggregateAndGetInsightsRF(orders: List[Dict], insights):
                 insights[product]["average_price"] = price
 
                 # RF global update
-                insights[product]["RF"]["count"] = 1
-                insights[product]["RF"]["average_price"] = price
+                insights[product][keyMap["platform"]]["count"] = 1
+                insights[product][keyMap["platform"]]["average_price"] = price
 
                 # RF grading update
-                insights[product]["RF"]["grading"][grading] = 1
-                insights[product]["RF"]["pricing"][grading] = price
+                insights[product][keyMap["platform"]]["grading"][grading] = 1
+                insights[product][keyMap["platform"]]["pricing"][grading] = price
 
             else:
                 # global update
@@ -64,63 +81,15 @@ def aggregateAndGetInsightsRF(orders: List[Dict], insights):
                 insights[product]["count"] += 1
 
                 # RF global update
-                insights[product]["RF"]["average_price"] = returnRollingAverage(
-                    insights[product]["RF"]["average_price"], insights[product]["RF"]["count"], price)
-                insights[product]["RF"]["count"] += 1
+                insights[product][keyMap["platform"]]["average_price"] = returnRollingAverage(
+                    insights[product][keyMap["platform"]]["average_price"], insights[product]["RF"]["count"], price)
+                insights[product][keyMap["platform"]]["count"] += 1
 
                 # RF grading update
-                insights[product]["RF"]["pricing"][grading] = returnRollingAverage(
-                    insights[product]["RF"]["pricing"][grading], insights[product]["RF"]["grading"][grading], price)
-                insights[product]["RF"]["grading"][grading] += 1
-
-    return insights
-
-
-def aggregateAndGetInsightsBackMarket(orders: List[Dict]):
-    insights = {}
-    for order in orders:
-        for orderline in order["orderlines"]:
-            sku: str = orderline["listing"]
-            name: str = orderline["product"]
-            price: float = float(orderline["price"])
-            product: str = sku[:6]
-            grading: str = sku[6:]
-
-            # ignoring potential custom gradings
-            if grading not in GRADINGS:
-                print(f"BM: Ignoring grading {grading}")
-                continue
-
-            if product not in insights:
-                insights[product] = initInsights()
-                # global update
-                insights[product]["name"] = name
-                insights[product]["count"] = 1
-                insights[product]["average_price"] = price
-
-                # BM global update
-                insights[product]["BM"]["count"] = 1
-                insights[product]["BM"]["average_price"] = price
-
-                # BM grading update
-                insights[product]["BM"]["grading"][grading] = 1
-                insights[product]["BM"]["pricing"][grading] = price
-
-            else:
-                # global update
-                insights[product]["average_price"] = returnRollingAverage(insights[product]["average_price"],
-                                                                          insights[product]["count"], price)
-                insights[product]["count"] += 1
-
-                # BM global update
-                insights[product]["BM"]["average_price"] = returnRollingAverage(
-                    insights[product]["BM"]["average_price"], insights[product]["BM"]["count"], price)
-                insights[product]["BM"]["count"] += 1
-
-                # BM grading update
-                insights[product]["BM"]["pricing"][grading] = returnRollingAverage(
-                    insights[product]["BM"]["pricing"][grading], insights[product]["BM"]["grading"][grading], price)
-                insights[product]["BM"]["grading"][grading] += 1
+                insights[product][keyMap["platform"]]["pricing"][grading] = returnRollingAverage(
+                    insights[product][keyMap["platform"]]["pricing"][grading],
+                    insights[product]["RF"]["grading"][grading], price)
+                insights[product][keyMap["platform"]]["grading"][grading] += 1
 
     return insights
 
@@ -134,7 +103,8 @@ def generateInsights(startDate, endDate):
     print(f"{'':->90}")
     os.makedirs(os.path.join(os.getcwd(), f"data/bm/orders/{startDate}"), exist_ok=True)
     with open(f"data/bm/orders/{startDate}/{startDate}.json", 'w') as f:
-        f.write(json.dumps(getBMOrdersBetweenDates(startDateTime, endDateTime), indent=3))
+        BMOrdersBetweenDates = getBMOrdersBetweenDates(startDateTime, endDateTime)
+        f.write(json.dumps(BMOrdersBetweenDates, indent=3))
     endTimer = time.time()
     total_time = endTimer - startTimer
     print(f"{f'BM Stats: It took {total_time} seconds': ^90}")
@@ -145,19 +115,17 @@ def generateInsights(startDate, endDate):
     print(f"{'':->90}")
     os.makedirs(os.path.join(os.getcwd(), f"data/rf/orders/{startDate}"), exist_ok=True)
     with open(f"data/rf/orders/{startDate}/{startDate}.json", 'w') as f:
-        # res, APICallCounter = asyncio.run(get_symbols())
-        f.write(json.dumps(getRFOrdersBetweenDates(startDateTime, endDateTime), indent=3))
+        RFOrdersBetweenDates = getRFOrdersBetweenDates(startDateTime, endDateTime)
+        f.write(json.dumps(RFOrdersBetweenDates, indent=3))
     endTimer = time.time()
     total_time = endTimer - startTimer
     print(f"{f'RF Stats: It took {total_time} seconds': ^90}")
     print(f"{'':->90}")
 
     print("Generating insights")
-    with open(f"data/bm/orders/{startDate}/{startDate}.json", "r") as f1, open(f"data/rf/orders/{startDate}/{startDate}.json", "r") as f2:
-        BMorders = json.load(f1)
-        insights = aggregateAndGetInsightsBackMarket(BMorders)
-        RFOrders = json.load(f2)
-        insights = aggregateAndGetInsightsRF(RFOrders, insights)
+    print(BMOrdersBetweenDates)
+    insights = aggregateAndGetInsights(BMOrdersBetweenDates, {}, BM_KEY_MAP)
+    insights = aggregateAndGetInsights(RFOrdersBetweenDates, insights, RF_KEY_MAP)
     print("Insights generated")
 
     print("Writing insights")
@@ -187,13 +155,13 @@ def generateInsights(startDate, endDate):
 
 
 if __name__ == "__main__":
-    # To generate insights, simply run the command python3 insights.py -d <YYYY-MM-DD> to generate insights on all
-    # sales after the date -d
+    # To generate insights, simply run the command python3 insights.py -start <YYYY-MM-DD>  -end <YYYY-MM-DD> to
+    # generate insights on all sales after the date -start and before date -end
     parser = argparse.ArgumentParser(description='Generate Insights for all sales after the specified date')
     parser.add_argument('-start', type=str, help="Start date: YYYY-MM-DD format", required=True)
-    parser.add_argument('-end', type=str, help="End date: YYYY-MM-DD format. Default is today's date", default=datetime.datetime.now().strftime("%Y-%m-%d"))
+    parser.add_argument('-end', type=str, help="End date: YYYY-MM-DD format. Default is today's date",
+                        default=datetime.datetime.now().strftime("%Y-%m-%d"))
     args = parser.parse_args()
     print("INFO: Started!")
 
     generateInsights(startDate=args.start, endDate=args.end)
-
