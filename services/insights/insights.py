@@ -82,13 +82,13 @@ def aggregateAndGetInsights(orders: List[Dict], insights: Dict, keyMap: Dict):
 
                 # RF global update
                 insights[product][keyMap["platform"]]["average_price"] = returnRollingAverage(
-                    insights[product][keyMap["platform"]]["average_price"], insights[product]["RF"]["count"], price)
+                    insights[product][keyMap["platform"]]["average_price"], insights[product][keyMap["platform"]]["count"], price)
                 insights[product][keyMap["platform"]]["count"] += 1
 
                 # RF grading update
                 insights[product][keyMap["platform"]]["pricing"][grading] = returnRollingAverage(
                     insights[product][keyMap["platform"]]["pricing"][grading],
-                    insights[product]["RF"]["grading"][grading], price)
+                    insights[product][keyMap["platform"]]["grading"][grading], price)
                 insights[product][keyMap["platform"]]["grading"][grading] += 1
 
     return insights
@@ -123,7 +123,6 @@ def generateInsights(startDate, endDate):
     print(f"{'':->90}")
 
     print("Generating insights")
-    print(BMOrdersBetweenDates)
     insights = aggregateAndGetInsights(BMOrdersBetweenDates, {}, BM_KEY_MAP)
     insights = aggregateAndGetInsights(RFOrdersBetweenDates, insights, RF_KEY_MAP)
     print("Insights generated")
