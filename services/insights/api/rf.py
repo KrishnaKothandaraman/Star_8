@@ -8,19 +8,19 @@ sys.path.append("")
 from get_order_history import keys
 
 
-def getRFOrdersAfterDate(date):
+def getRFOrdersBetweenDates(startDate, endDate):
     """
 
     :param date: ISO 8601 format date string
     :return: response
     """
     print(f"INFO: Sending request to RF")
-    starting_after = 0
     orders = []
     payload = {
         "filter": {
             "released_at": {
-                "ge": date
+                "ge": startDate,
+                "le": endDate
             }
         },
     }
@@ -43,7 +43,8 @@ def getRFOrdersAfterDate(date):
             payload = {
                 "filter": {
                     "released_at": {
-                        "ge": date
+                        "ge": startDate,
+                        "le": endDate
                     }
                 },
                 "pagination": {
