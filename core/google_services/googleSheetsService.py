@@ -5,8 +5,6 @@ import os
 sys.path.append(os.path.join(""))
 
 from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
-
-
 import io
 from typing import List, Dict, Tuple
 import apiclient
@@ -21,6 +19,8 @@ GOOGLE_SHEETS_STARTING_CELL = "A15"
 """
 Docs: https://googleapis.github.io/google-api-python-client/docs/dyn/sheets_v4.spreadsheets.html#getByDataFilter
 """
+
+
 class GoogleSheetsService:
     def __init__(self):
         self.driveService = GoogleAppServiceFactory.getGoogleAppService(GOOGLE_DRIVE_SERVICE_NAME)
@@ -133,17 +133,17 @@ class GoogleSheetsService:
             raise IncorrectSheetTitleException(f"Title {sheetTitle} not found in spreadsheet")
 
         request = {"appendCells": {
-                        "fields": "*",
-                        "rows": [{
-                            "values": [{
-                                "userEnteredValue": {
-                                    "stringValue": self.getValueAsString(value)
-                                }
-                            }for value in row]
-                        } for row in data],
-                        "sheetId": sheetID
-                }
-            }
+            "fields": "*",
+            "rows": [{
+                "values": [{
+                    "userEnteredValue": {
+                        "stringValue": self.getValueAsString(value)
+                    }
+                } for value in row]
+            } for row in data],
+            "sheetId": sheetID
+        }
+        }
         return self.executeBatchRequest(requests=request, documentId=documentID)
 
     def executeBatchRequest(self, requests, documentId):
@@ -177,5 +177,6 @@ class GoogleSheetsService:
                                                                   range=f"{sheetName}!1:1").execute()
         return [item for item in response["values"]]
 
-# a = GoogleSheetsService()
-# a.appendValuesToBottomOfSheet(sheetTitle="MyRand", documentID="1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys", data=[[1, 2, 3], [4, 5, {"a"}]])
+# a = GoogleSheetsService() a.appendValuesToBottomOfSheet(sheetTitle="MyRand",
+# documentID="1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys", data=[[1, 2, 3], [4, 5, {"a"}]])
+

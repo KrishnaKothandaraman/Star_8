@@ -2,13 +2,11 @@ import time
 from typing import Tuple, List, Dict
 import json
 import os
-import sys
 import argparse
 import datetime
-
-sys.path.append("")
-from services.insights.api.rf import getRFOrdersBetweenDates
-from services.insights.api.bm import getBMOrdersBetweenDates
+from get_order_history import keys
+from core.marketplace_clients.rfclient import RefurbedClient
+from core.marketplace_clients.bmclient import BackMarketClient
 from services.insights.insightjson import initInsights
 from services.insights.utils.util import writeToCSV, returnRollingAverage
 
@@ -98,12 +96,14 @@ def generateInsights(startDate, endDate):
     """Generates insights between startDate 00:00:00 and endDate 23:59:59"""
     startDateTime = startDate + " 00:00:00"
     endDateTime = endDate + " 23:59:59"
+    BMClient = BackMarketClient(key=keys['BM']["token"])
+    RFClient = RefurbedClient(key=keys['RF']['token'])
 
     startTimer = time.time()
     print(f"{'':->90}")
     os.makedirs(os.path.join(os.getcwd(), f"data/bm/orders/{startDate}"), exist_ok=True)
     with open(f"data/bm/orders/{startDate}/{startDate}.json", 'w') as f:
-        BMOrdersBetweenDates = getBMOrdersBetweenDates(startDateTime, endDateTime)
+        BMOrdersBetweenDates = BMClient.getOrdersBetweenDates(startDateTime, endDateTime)
         f.write(json.dumps(BMOrdersBetweenDates, indent=3))
     endTimer = time.time()
     total_time = endTimer - startTimer
@@ -115,7 +115,7 @@ def generateInsights(startDate, endDate):
     print(f"{'':->90}")
     os.makedirs(os.path.join(os.getcwd(), f"data/rf/orders/{startDate}"), exist_ok=True)
     with open(f"data/rf/orders/{startDate}/{startDate}.json", 'w') as f:
-        RFOrdersBetweenDates = getRFOrdersBetweenDates(startDateTime, endDateTime)
+        RFOrdersBetweenDates = RFClient.getOrdersBetweenDates(startDateTime, endDateTime)
         f.write(json.dumps(RFOrdersBetweenDates, indent=3))
     endTimer = time.time()
     total_time = endTimer - startTimer
@@ -136,14 +136,14 @@ def generateInsights(startDate, endDate):
                     insight["count"], insight["BM"]["count"], insight["RF"]["count"],
                     round(insight["average_price"], 2), round(insight["BM"]["average_price"], 2),
                     round(insight["RF"]["average_price"], 2),
-                    insight["BM"]["grading"]["SH"], round(insight["BM"]["pricing"]["SH"], 2),
-                    insight["BM"]["grading"]["SL"], round(insight["BM"]["pricing"]["SL"], 2),
-                    insight["BM"]["grading"]["BR"], round(insight["BM"]["pricing"]["BR"], 2),
+                    insight["BM"]["grading"]["SH"],  round(insight["BM"]["pricing"]["SH"], 2),
+                    insight["BM"]["grading"]["SL"],  round(insight["BM"]["pricing"]["SL"], 2),
+                    insight["BM"]["grading"]["BR"],  round(insight["BM"]["pricing"]["BR"], 2),
                     insight["BM"]["grading"]["BR2"], round(insight["BM"]["pricing"]["BR2"], 2),
                     insight["BM"]["grading"]["SH2"], round(insight["BM"]["pricing"]["SH2"], 2),
-                    insight["RF"]["grading"]["SH"], round(insight["RF"]["pricing"]["SH"], 2),
-                    insight["RF"]["grading"]["SL"], round(insight["RF"]["pricing"]["SL"], 2),
-                    insight["RF"]["grading"]["BR"], round(insight["RF"]["pricing"]["BR"], 2),
+                    insight["RF"]["grading"]["SH"],  round(insight["RF"]["pricing"]["SH"], 2),
+                    insight["RF"]["grading"]["SL"],  round(insight["RF"]["pricing"]["SL"], 2),
+                    insight["RF"]["grading"]["BR"],  round(insight["RF"]["pricing"]["BR"], 2),
                     insight["RF"]["grading"]["BR2"], round(insight["RF"]["pricing"]["BR2"], 2),
                     insight["RF"]["grading"]["SH2"], round(insight["RF"]["pricing"]["SH2"], 2),
                     ] for (sku, insight) in insights.items()]
