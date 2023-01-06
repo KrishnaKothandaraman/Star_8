@@ -121,7 +121,7 @@ columnMapping = {
             "Refurbed": None,
         },
         "date_shipment": {
-            "BackMarket": "date_shipment",
+            "BackMarket": "date_shipping",
             "Refurbed": None,
         },
         "date_payment": {

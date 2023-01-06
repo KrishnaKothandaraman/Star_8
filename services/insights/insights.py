@@ -1,14 +1,13 @@
 import time
 from typing import Tuple, List, Dict
-import json
 import os
 import argparse
 import datetime
 from get_order_history import keys
 from core.marketplace_clients.rfclient import RefurbedClient
 from core.marketplace_clients.bmclient import BackMarketClient
-from services.insights.insightjson import initInsights
-from services.insights.utils.util import writeToCSV, returnRollingAverage
+from services.insights.utils.insightjson import initInsights
+from services.insights.utils.util import writeToCSV, returnRollingAverage, makeDirAndWriteToFile
 
 COLS = ["Model_SKU", "Product_name",
         "Total Sold", "BM - Total", "RF - Total",
@@ -94,43 +93,39 @@ def aggregateAndGetInsights(orders: List[Dict], insights: Dict, keyMap: Dict):
 
 def generateInsights(startDate, endDate):
     """Generates insights between startDate 00:00:00 and endDate 23:59:59"""
-    startDateTime = startDate + " 00:00:00"
-    endDateTime = endDate + " 23:59:59"
-    BMClient = BackMarketClient(key=keys['BM']["token"])
-    RFClient = RefurbedClient(key=keys['RF']['token'])
+    startDateTime = datetime.datetime.strptime(startDate, "%Y-%m-%d")
+    endDateTime = datetime.datetime.strptime(endDate, "%Y-%m-%d")
+    BMClient = BackMarketClient(key=keys['BM']["token"], dateFieldName="date_created", itemKeyName="orderlines", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+    RFClient = RefurbedClient(key=keys['RF']['token'], dateFieldName="date_released", itemKeyName="items", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
 
     startTimer = time.time()
     print(f"{'':->90}")
-    os.makedirs(os.path.join(os.getcwd(), f"data/bm/orders/{startDate}"), exist_ok=True)
-    with open(f"data/bm/orders/{startDate}/{startDate}.json", 'w') as f:
-        BMOrdersBetweenDates = BMClient.getOrdersBetweenDates(startDateTime, endDateTime)
-        f.write(json.dumps(BMOrdersBetweenDates, indent=3))
-    endTimer = time.time()
-    total_time = endTimer - startTimer
+    BMOrders = BMClient.getOrdersBetweenDates(startDateTime, endDateTime)
+    makeDirAndWriteToFile(filePath=f"data/bm/orders/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"data/bm/orders/{startDate}"),
+                          data=BMOrders)
+    total_time = time.time() - startTimer
     print(f"{f'BM Stats: It took {total_time} seconds': ^90}")
 
-    startDateTime = startDate + "T00:00:00.00000Z"
-    endDateTime = endDate + "T23:59:59.9999Z"
     startTimer = time.time()
     print(f"{'':->90}")
-    os.makedirs(os.path.join(os.getcwd(), f"data/rf/orders/{startDate}"), exist_ok=True)
-    with open(f"data/rf/orders/{startDate}/{startDate}.json", 'w') as f:
-        RFOrdersBetweenDates = RFClient.getOrdersBetweenDates(startDateTime, endDateTime)
-        f.write(json.dumps(RFOrdersBetweenDates, indent=3))
-    endTimer = time.time()
-    total_time = endTimer - startTimer
+    RFOrders = RFClient.getOrdersBetweenDates(startDateTime, endDateTime)
+    makeDirAndWriteToFile(filePath=f"data/rf/orders/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"data/rf/orders/{startDate}"),
+                          data=RFOrders)
+    total_time = time.time() - startTimer
     print(f"{f'RF Stats: It took {total_time} seconds': ^90}")
     print(f"{'':->90}")
 
     print("Generating insights")
-    insights = aggregateAndGetInsights(BMOrdersBetweenDates, {}, BM_KEY_MAP)
-    insights = aggregateAndGetInsights(RFOrdersBetweenDates, insights, RF_KEY_MAP)
+    insights = aggregateAndGetInsights(BMOrders, {}, BM_KEY_MAP)
+    insights = aggregateAndGetInsights(RFOrders, insights, RF_KEY_MAP)
     print("Insights generated")
 
     print("Writing insights")
-    os.makedirs(os.path.join(os.getcwd(), f"data/insights/{startDate}"), exist_ok=True)
-    with open(f"data/insights/{startDate}/{startDate}.json", "w") as f:
-        f.write(json.dumps(insights, indent=3))
+    makeDirAndWriteToFile(filePath=f"data/insights/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"data/insights/{startDate}"),
+                          data=insights)
 
     insightList = [[f"'{sku}", insight["name"],
                     insight["count"], insight["BM"]["count"], insight["RF"]["count"],

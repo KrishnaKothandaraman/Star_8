@@ -17,20 +17,21 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
-SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
+SPREADSHEET_ID = "19OXMfru14WMEI4nja9SCAljnCDrHlw33SHLO77vAmVo"
 SPREADSHEET_NAME = "Combined_Orders"
 
 
-def updateGoogleSheet():
+def updateGoogleSheetNonApi():
     start = time.time()
     try:
         service = GoogleSheetsService()
     except Exception as e:
         print(traceback.print_exc())
-        return make_response(jsonify({"type": "fail",
-                                      "message": "Failed to open Google Sheets. Check server logs for more info"
-                                      }),
-                             400)
+        return
+        # return make_response(jsonify({"type": "fail",
+        #                               "message": "Failed to open Google Sheets. Check server logs for more info"
+        #                               }),
+        #                      400)
 
     googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME,
                                                       column="A")
@@ -45,7 +46,7 @@ def updateGoogleSheet():
     startOffset = 20
     endOffset = 0
 
-    for i in range(2, 38):
+    for i in range(16, 35):
         startDatetime = datetime.datetime.now() - datetime.timedelta(days=startOffset + (i * offset))
         nowDateTime = datetime.datetime.now() - datetime.timedelta(days=endOffset + (i * offset))
         RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=startDatetime, end=nowDateTime)
@@ -55,6 +56,7 @@ def updateGoogleSheet():
             "BackMarket": [],
             "Refurbed": []
         }
+
         for order in RFNewOrders:
             if str(order["id"]) not in googleSheetOrderIDs:
                 ordersToBeAdded["Refurbed"].append(order)
@@ -62,6 +64,7 @@ def updateGoogleSheet():
         for order in BMnewOrders:
             if str(order["order_id"]) not in googleSheetOrderIDs:
                 ordersToBeAdded["BackMarket"].append(order)
+
 
         """
         Step 1 is to flatten everything except the orderlines
@@ -107,6 +110,7 @@ def updateGoogleSheet():
         RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime, end=nowDateTime)
         BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime, end=nowDateTime)
 
+        print(len(BMnewOrders))
         ordersToBeAdded = {
             "BackMarket": [],
             "Refurbed": []
@@ -118,7 +122,9 @@ def updateGoogleSheet():
         for order in BMnewOrders:
             if str(order["order_id"]) not in googleSheetOrderIDs:
                 ordersToBeAdded["BackMarket"].append(order)
-
+            else:
+                print(f"{order['order_id']} exists")
+        print(len(ordersToBeAdded["BackMarket"]))
         """
         Step 1 is to flatten everything except the orderlines
         """
@@ -162,4 +168,5 @@ if __name__ == '__main__':
     # **** if you run locally without dockerfile, uncomment the below lines *****
     # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(os.getcwd(), "../helloar-analytics-d4298ceae005.json")
     # os.environ["SENDGRID_API_KEY"] = "<enter api key here>"
-    app.run(port=5001)
+    # app.run(port=5001)
+    updateGoogleSheetNonApi()
