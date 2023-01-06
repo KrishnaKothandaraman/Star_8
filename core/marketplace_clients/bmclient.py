@@ -1,7 +1,10 @@
+import datetime
 import enum
+import json
 import requests
 from pandas import to_datetime as to_datetime
 from core.custom_exceptions.general_exceptions import GenericAPIException
+from core.marketplace_clients.clientinterface import MarketPlaceClient
 
 
 class BackMarketOrderStates(enum.Enum):
@@ -37,13 +40,20 @@ class BackMarketOrderlinesStates(enum.Enum):
             5: "REFUND BEFORE SHIPPING", 6: "REFUND AFTER SHIPPING", 7: "PAYMENT FAILED", 8: "AWAITING PAYMENT"
         }[val]
 
-class BackMarketClient:
-    key: str
 
-    def __init__(self, key):
-        self.key = key
+class BackMarketClient(MarketPlaceClient):
 
-    def getOrdersBetweenDates(self, start, end):
+    def __init__(self, key: str, dateFieldName: str, dateStringFormat: str, itemKeyName: str):
+        super().__init__(key)
+        self.vendor = "BackMarket"
+        self.dateFieldName = dateFieldName
+        self.dateStringFormat = dateStringFormat
+        self.itemKeyName = itemKeyName
+
+    def getOrdersBetweenDates(self, start: datetime.datetime, end: datetime.datetime):
+
+        start = self.convertDateTimeToString(start, "00:00:00")
+        end = self.convertDateTimeToString(end, "23:59:59")
 
         print(f"INFO: Sending request to BM")
         nextURL = f"https://www.backmarket.fr/ws/orders?date_creation={start}"
@@ -81,3 +91,12 @@ class BackMarketClient:
             raise GenericAPIException(resp.reason)
 
         return resp.json()
+
+
+if __name__ == "__main__":
+    c = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4", itemKeyName="orderlines", dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+    with open("data/bm/orders/2023-01-03/2023-01-03.json") as f:
+        order = json.load(f)
+    converted = (c.convertOrdersToSheetColumns([order]))
+    for con in converted:
+        print(con)
