@@ -109,12 +109,3 @@ class BackMarketClient(MarketPlaceClient):
             raise GenericAPIException(resp.reason)
 
         return resp.json()
-
-
-if __name__ == "__main__":
-    c = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4", itemKeyName="orderlines", dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
-    with open("data/bm/orders/2023-01-03/2023-01-03.json") as f:
-        order = json.load(f)
-    converted = (c.convertOrdersToSheetColumns([order]))
-    for con in converted:
-        print(con)

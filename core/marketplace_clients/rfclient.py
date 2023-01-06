@@ -57,13 +57,3 @@ class RefurbedClient(MarketPlaceClient):
 
         print(f"Refurbed {len(orders)}")
         return orders
-
-
-if __name__ == "__main__":
-    c = RefurbedClient(key="Plain e01e77cd-899f-4964-a44f-ec603ab62d17", itemKeyName="items",
-                       dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
-    with open("data/rf/orders/2023-01-03/2023-01-03.json") as f:
-        order = json.load(f)
-    converted = (c.convertOrdersToSheetColumns([order]))
-    for con in converted:
-        print(con)
