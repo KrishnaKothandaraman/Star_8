@@ -17,14 +17,8 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
-BM_SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
-BM_SPREADSHEET_NAME = "OrderS"
-RF_SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
-RF_SPREADSHEET_NAME = "RF_Orders"
-
-
-def convertBetweenDateTimeStringFormats(inputString: str, inputFormat: str, outputFormat: str) -> str:
-    return datetime.datetime.strptime(inputString, inputFormat).strftime(outputFormat)
+SPREADSHEET_ID = "1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys"
+SPREADSHEET_NAME = "Combined_Orders"
 
 
 @app.route('/update-rf-googlesheet', methods=['POST'])
@@ -40,53 +34,44 @@ def updateRFGoogleSheet():
                              400)
 
     try:
-        googleSheetOrderIDs = service.getEntireColumnData(sheetID=RF_SPREADSHEET_ID, sheetName=RF_SPREADSHEET_NAME,
+        googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME,
                                                           column="A")
         googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
-        RFAPIInstance = RefurbedClient(key=keys["RF"]["token"])
-        todayStartDateTime = (datetime.datetime.now()).strftime("%Y-%m-%d") + "T00:00:00.00000Z"
-        todayEndDateTime = datetime.datetime.now().strftime("%Y-%m-%d") + "T23:59:59.9999Z"
-        RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=todayStartDateTime, end=todayEndDateTime)
-        ordersToBeAdded = []
+        RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
+                                       dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
+        BMAPIInstance = BackMarketClient(key=keys["BM"]["token"], itemKeyName="orderlines",
+                                         dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+
+        nowDateTime = datetime.datetime.now() - datetime.timedelta(days = 1)
+        RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime, end=nowDateTime)
+        BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime, end=nowDateTime)
+
+        ordersToBeAdded = {
+            "BackMarket": [],
+            "Refurbed": []
+        }
         for order in RFNewOrders:
             if str(order["id"]) not in googleSheetOrderIDs:
-                ordersToBeAdded.append(order)
+                ordersToBeAdded["Refurbed"].append(order)
+
+        for order in BMnewOrders:
+            if str(order["order_id"]) not in googleSheetOrderIDs:
+                ordersToBeAdded["BackMarket"].append(order)
+
         """
         Step 1 is to flatten everything except the orderlines
         """
         # contains flattened order list to upload to sheets
         flattenedOrderList = []
 
-        # for each order that may contain multiple orderlines
-        for order in ordersToBeAdded:
-            # add supplement address field to clean code to clean code
-            order["shipping_address"].setdefault("supplement", "")
-            order["invoice_address"].setdefault("supplement", "")
-            order["invoice_address"].setdefault("company_vatin", "")
+        convertedBMOrders = BMAPIInstance.convertOrdersToSheetColumns(ordersToBeAdded["BackMarket"])
+        convertedRFOrders = RFAPIInstance.convertOrdersToSheetColumns(ordersToBeAdded["Refurbed"])
 
-            order["shipping_address"].pop("company_name", None)
-            order["invoice_address"].pop("company_name",None)
+        flattenedOrderList += [list(d.values()) for d in convertedRFOrders + convertedBMOrders]
 
-            #print(len(order.keys()), len(order["shipping_address"].keys()), len(order["invoice_address"].keys()))
-            # for each orderline in an order
-            for i, _ in enumerate(order["items"]):
-                # create a row
-                singleFlatOrder = []
-                for key, item in order.items():
-                    if key != "items":
-                        if type(item) != dict:
-                            item = convertBetweenDateTimeStringFormats(item, "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S") if key == "released_at" else item
-                            singleFlatOrder.append(str(item))
-                        else:
-                            singleFlatOrder += [str(val) for _, val in item.items()]
-                    # only add the current ith orderline to this row
-                    else:
-                        singleFlatOrder += [val for _, val in order["items"][i].items()]
-                flattenedOrderList.append(singleFlatOrder)
-
-        service.appendValuesToBottomOfSheet(data=flattenedOrderList, sheetTitle=RF_SPREADSHEET_NAME,
-                                            documentID=RF_SPREADSHEET_ID)
+        service.appendValuesToBottomOfSheet(data=flattenedOrderList, sheetTitle=SPREADSHEET_NAME,
+                                            documentID=SPREADSHEET_ID)
         end = time.time()
 
         print(f"Time taken to handle this request {end - start}")
@@ -131,8 +116,8 @@ def updateBMGoogleSheet():
         googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
         BMAPIInstance = BackMarketClient(key=keys["BM"]["token"])
-        todayStartDateTime = datetime.datetime.now().strftime("%Y-%m-%d") + " 00:00:00"
-        todayEndDateTime = datetime.datetime.now().strftime("%Y-%m-%d") + " 23:59:59"
+        todayStartDateTime = datetime.datetime.now()
+        todayEndDateTime = datetime.datetime.now()
         BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=todayStartDateTime, end=todayEndDateTime)
         ordersToBeAdded = []
         for order in BMnewOrders:

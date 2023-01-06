@@ -4,6 +4,10 @@ columnMapping = {
             "BackMarket": "order_id",
             "Refurbed": "id",
         },
+        "Market":{
+            "BackMarket": "<BackMarket>",
+            "Refurbed": "<Refurbed>"
+        },
         "state": {
             "BackMarket": "state",
             "Refurbed": "state",
@@ -108,6 +112,10 @@ columnMapping = {
             "BackMarket": "installment_payment",
             "Refurbed": None,
         },
+        "date_creation": {
+            "BackMarket": "date_creation",
+            "Refurbed": "released_at"
+        },
         "date_modification": {
             "BackMarket": "date_modification",
             "Refurbed": None,
@@ -132,12 +140,8 @@ columnMapping = {
             "BackMarket": None,
             "Refurbed": "is_invoicable",
         },
-        "has_invoicable": {
+        "has_invoice": {
             "BackMarket": None,
-            "Refurbed": "has_invoicable",
-        },
-        "item_id": {
-            "BackMarket": "orderlines",
             "Refurbed": "has_invoicable",
         },
         "shipper": {
@@ -146,15 +150,11 @@ columnMapping = {
         },
         "tracking_url": {
             "BackMarket": "tracking_url",
-            "Refurbed": None
+            "Refurbed": "parcel_tracking_url"
         },
         "tracking_number": {
-            "BackMarket": None,
+            "BackMarket": "item_identifier",
             "Refurbed": "tracking_number"
-        },
-        "date_creation": {
-            "BackMarket": "date_creation",
-            "Refurbed": "released_at"
         },
         "payment_method": {
             "BackMarket": "payment_method",
@@ -167,14 +167,6 @@ columnMapping = {
         "expected_dispatch_date": {
             "BackMarket": "expected_dispatch_date",
             "Refurbed": None
-        },
-        "parcel_tracking_url": {
-            "BackMarket": None,
-            "Refurbed": "parcel_tracking_url"
-        },
-        "item_identifier": {
-            "BackMarket": None,
-            "Refurbed": "item_identifier"
         },
     },
     "items": {
@@ -208,7 +200,7 @@ columnMapping = {
         },
         "quantity": {
             "BackMarket": "quantity",
-            "Refurbed": 1
+            "Refurbed": "<1>"
         },
         "settlement_total_commission": {
             "BackMarket": None,

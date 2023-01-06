@@ -26,6 +26,7 @@ class RefurbedClient(MarketPlaceClient):
         start = self.convertDateTimeToString(start, "T00:00:00.00000Z")
         end = self.convertDateTimeToString(end, "T23:59:59.9999Z")
 
+        print(start, end)
         print(f"INFO: Sending request to RF")
         orders = []
         payload = {

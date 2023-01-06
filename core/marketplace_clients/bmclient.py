@@ -22,6 +22,16 @@ class BackMarketOrderStates(enum.Enum):
         }[val]
 
 
+class BackMarketGender(enum.Enum):
+    Male: 0
+    Female: 1
+
+    @staticmethod
+    def getStrFromEnum(val):
+        return {
+            0: "MALE", 1: "FEMALE"}[val]
+
+
 class BackMarketOrderlinesStates(enum.Enum):
     New: 0
     Validate_Orderline: 1
@@ -52,8 +62,8 @@ class BackMarketClient(MarketPlaceClient):
 
     def getOrdersBetweenDates(self, start: datetime.datetime, end: datetime.datetime):
 
-        start = self.convertDateTimeToString(start, "00:00:00")
-        end = self.convertDateTimeToString(end, "23:59:59")
+        start = self.convertDateTimeToString(start, " 00:00:00")
+        end = self.convertDateTimeToString(end, " 23:59:59")
 
         print(f"INFO: Sending request to BM")
         nextURL = f"https://www.backmarket.fr/ws/orders?date_creation={start}"
@@ -73,6 +83,8 @@ class BackMarketClient(MarketPlaceClient):
             numOrders += len(results)
             for res in results:
                 res["state"] = BackMarketOrderStates.getStrFromEnum(val=int(res["state"]))
+                res["shipping_address"]["gender"] = BackMarketGender.getStrFromEnum(val=int(res["shipping_address"]["gender"]))
+                res["billing_address"]["gender"] = BackMarketGender.getStrFromEnum(val=int(res["billing_address"]["gender"]))
                 for order in res["orderlines"]:
                     order["state"] = BackMarketOrderlinesStates.getStrFromEnum(val=int(order["state"]))
             orders += [res for res in results if
