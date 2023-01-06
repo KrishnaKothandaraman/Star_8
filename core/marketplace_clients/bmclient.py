@@ -64,12 +64,11 @@ class BackMarketClient(MarketPlaceClient):
 
         start = self.convertDateTimeToString(start, " 00:00:00")
         end = self.convertDateTimeToString(end, " 23:59:59")
-
+        print(f"Filtering between {start} {end}")
         print(f"INFO: Sending request to BM")
         nextURL = f"https://www.backmarket.fr/ws/orders?date_creation={start}"
         numOrders = 0
         orders = []
-
         while nextURL:
             print(f"Making call to {nextURL}")
             resp = requests.get(url=nextURL,
@@ -87,8 +86,15 @@ class BackMarketClient(MarketPlaceClient):
                 res["billing_address"]["gender"] = BackMarketGender.getStrFromEnum(val=int(res["billing_address"]["gender"]))
                 for order in res["orderlines"]:
                     order["state"] = BackMarketOrderlinesStates.getStrFromEnum(val=int(order["state"]))
+
+            oldLen = len(orders)
             orders += [res for res in results if
                        to_datetime(res["date_creation"]).strftime("%Y-%m-%d %H:%M:%S") <= end]
+
+            # all older orders
+            if len(orders) - oldLen == 0:
+                print(f"Reached the stage of older orders. Breaking out")
+                break
 
         print(f"Back Market: {numOrders=}")
         return orders
