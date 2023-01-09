@@ -1,3 +1,14 @@
+"""
+Each key in the dict represents a column in the google sheet.
+The value for each key represents the corresponding json key from each marketplace
+Global: These represent per order fields
+Items: These represent per item fields. An order may consist of one or more items
+NOTATIONS:
+<val>: This denotes a constant value. If the parser encounters this format, it will use the value within <> as a constant
+/ : The forward slash operator denotes a key from a nester json object. Cannot be used in conjunction with +
++ : The plus operator denotes joining of multiple column values. THIS ONLY WORKS IF THE JOINED COLUMNS ARE THE LAST IN
+THE HIERARCHY of / operators.
+"""
 columnMapping = {
     "global": {
         "order_id": {
@@ -162,7 +173,7 @@ columnMapping = {
         },
         "sales_taxes": {
             "BackMarket": "sales_taxes",
-            "Refurbed": None
+            "Refurbed": "<0.00>"
         },
         "expected_dispatch_date": {
             "BackMarket": "expected_dispatch_date",
@@ -224,7 +235,7 @@ columnMapping = {
         },
         "shipping_price": {
             "BackMarket": "shipping_price",
-            "Refurbed": None
+            "Refurbed": "<0.00>"
         },
     }
 }
