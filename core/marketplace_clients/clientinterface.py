@@ -34,8 +34,15 @@ class MarketPlaceClient:
 
         multiLevelCol = col.split('/')
         val = order
-        for level in multiLevelCol:
-            val = val.get(level, "")
+        for i, level in enumerate(multiLevelCol):
+            # last level. There could be column joining through + operation
+            if i == len(multiLevelCol) - 1 and len(level.split("+")) > 0:
+                joinedVal = ""
+                for col in level.split("+"):
+                    joinedVal += str(val.get(col))
+                val = joinedVal
+            else:
+                val = val.get(level, "")
         return val
 
     @staticmethod

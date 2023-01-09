@@ -6,6 +6,9 @@ import googleapiclient.errors
 from flask import Flask, request, make_response, jsonify, send_file
 from core.google_services.googleSheetsService import GoogleSheetsService
 import services.databaseManagement.controller.orders_controller as orders_controller
+from core.marketplace_clients.bmclient import BackMarketClient
+from core.marketplace_clients.rfclient import RefurbedClient
+from get_order_history import keys
 
 app = Flask(__name__)
 CORS(app)
@@ -17,21 +20,32 @@ def updateGoogleSheet():
     start = time.time()
     try:
         service = GoogleSheetsService()
-    except Exception as e:
+    except Exception:
         print(traceback.print_exc())
         return make_response(jsonify({"type": "fail",
                                       "message": "Failed to open Google Sheets. Check server logs for more info"
                                       }),
                              400)
     try:
-        newRecordsAdded = orders_controller.performAddNewOrdersUpdate(service=service)
+        RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
+                                       dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
+        BMAPIInstance = BackMarketClient(key=keys["BM"]["token"], itemKeyName="orderlines",
+                                         dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+
+        recordsUpdated = orders_controller.performUpdateExistingOrdersUpdate(service=service,
+                                                                             BMAPIInstance=BMAPIInstance,
+                                                                             RFAPIInstance=RFAPIInstance)
+
+        newRecordsAdded = orders_controller.performAddNewOrdersUpdate(service=service,
+                                                                      BMAPIInstance=BMAPIInstance,
+                                                                      RFAPIInstance=RFAPIInstance)
 
         end = time.time()
 
         print(f"Time taken to handle this request {end - start}")
 
         return make_response(jsonify({"type": "success",
-                                      "message": f"Added {newRecordsAdded} records!"
+                                      "message": f"Added {newRecordsAdded} records! Updated {recordsUpdated} records!"
                                       }),
                              200)
     except googleapiclient.errors.HttpError as e:

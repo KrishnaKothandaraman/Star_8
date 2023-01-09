@@ -113,14 +113,12 @@ class GoogleSheetsService:
 
         return str(val) if val else ""
 
-    def appendValuesToBottomOfSheet(self, data: List[List], documentID, sheetTitle):
+    def getSheetIDFromSheetName(self, documentID: str, sheetTitle: str) -> str:
         """
-        List of Lists with each inner list containing a row of values to be appended
-        :param sheetTitle: Title of the sheet within the spreadsheet
-        :param documentID: ID of spreadsheet to append to
-        :param data: List of rows of values to be appended
-        :return:
+        Returns sheetID from spreadsheet that has title = sheetTitle. If it doesn't exist raises
+        IncorrectSheetTitleException
         """
+
         spreadsheet = self.sheetsService.spreadsheets().get(spreadsheetId=documentID).execute()
 
         sheetID = None
@@ -131,6 +129,51 @@ class GoogleSheetsService:
 
         if not sheetID:
             raise IncorrectSheetTitleException(f"Title {sheetTitle} not found in spreadsheet")
+
+        return sheetID
+
+    def updateEntireRowValuesFromRowNumber(self, rowNumberList: List[int], dataList: List[List], documentID: str,
+                                           sheetTitle: str):
+        """
+        Overwrites the entire rowNumber with data
+        :param sheetTitle: Sheet title to update
+        :param documentID: Document ID of spreadsheet
+        :param rowNumberList: 0 indexed row number from google sheets
+        :param dataList: New data to be written to rowNumber
+        :return: None
+        """
+
+        sheetID = self.getSheetIDFromSheetName(sheetTitle=sheetTitle, documentID=documentID)
+
+        requests = [{"updateCells": {
+            "fields": "*",
+            "rows": [{
+                "values": [{
+                    "userEnteredValue": {
+                        "stringValue": self.getValueAsString(value)
+                    }
+                } for value in dataList[i]]
+            }],
+            "start": {
+                "sheetId": sheetID,
+                "rowIndex": rowNumber,
+                "columnIndex": 0
+            }
+        }
+        } for i, rowNumber in enumerate(rowNumberList)]
+
+        return self.executeBatchRequest(requests=requests, documentId=documentID)
+
+    def appendValuesToBottomOfSheet(self, data: List[List], documentID, sheetTitle):
+        """
+        List of Lists with each inner list containing a row of values to be appended
+        :param sheetTitle: Title of the sheet within the spreadsheet
+        :param documentID: ID of spreadsheet to append to
+        :param data: List of rows of values to be appended
+        :return:
+        """
+
+        sheetID = self.getSheetIDFromSheetName(sheetTitle=sheetTitle, documentID=documentID)
 
         request = {"appendCells": {
             "fields": "*",
@@ -177,6 +220,10 @@ class GoogleSheetsService:
                                                                   range=f"{sheetName}!1:1").execute()
         return [item for item in response["values"]]
 
-# a = GoogleSheetsService() a.appendValuesToBottomOfSheet(sheetTitle="MyRand",
-# documentID="1BhDJ-RJwbq6wQtAsoZoN5YY5InK5Z2Qc15rHgLzo4Ys", data=[[1, 2, 3], [4, 5, {"a"}]])
 
+# a = GoogleSheetsService()
+# print(a.updateEntireRowValuesFromRowNumber(sheetTitle="tester",
+#                                            documentID="19OXMfru14WMEI4nja9SCAljnCDrHlw33SHLO77vAmVo",
+#                                            rowNumberList=[316, 317],
+#                                            dataList=[['BWA', "HA", "HA", "HA"],
+#                                                      ['6', "9", "6", "9"]]))

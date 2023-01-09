@@ -1,6 +1,8 @@
 import datetime
 import enum
 import json
+from typing import Optional
+
 import requests
 from pandas import to_datetime as to_datetime
 from core.custom_exceptions.general_exceptions import GenericAPIException
@@ -65,39 +67,52 @@ class BackMarketClient(MarketPlaceClient):
         start = self.convertDateTimeToString(start, " 00:00:00")
         end = self.convertDateTimeToString(end, " 23:59:59")
         print(f"Filtering between {start} {end}")
-        print(f"INFO: Sending request to BM")
-        nextURL = f"https://www.backmarket.fr/ws/orders?date_creation={start}"
-        numOrders = 0
-        orders = []
-        while nextURL:
-            print(f"Making call to {nextURL}")
-            resp = requests.get(url=nextURL,
+        return self.crawlURL(url=f"https://www.backmarket.fr/ws/orders?date_creation={start}", endDate=end)
+
+    def crawlURL(self, url, endDate: Optional[str]):
+
+        data = []
+        orderCounter = 0
+        while url:
+            print(f"Making call to {url}")
+            resp = requests.get(url=url,
                                 headers={"Authorization": f"basic {self.key}"})
             if resp.status_code != 200:
                 print(f"Error occured {resp.status_code}")
                 raise GenericAPIException(resp.reason)
 
-            nextURL = resp.json()["next"]
+            url = resp.json()["next"]
             results = resp.json()["results"]
-            numOrders += len(results)
+            orderCounter += len(results)
             for res in results:
                 res["state"] = BackMarketOrderStates.getStrFromEnum(val=int(res["state"]))
-                res["shipping_address"]["gender"] = BackMarketGender.getStrFromEnum(val=int(res["shipping_address"]["gender"]))
-                res["billing_address"]["gender"] = BackMarketGender.getStrFromEnum(val=int(res["billing_address"]["gender"]))
+                res["shipping_address"]["gender"] = BackMarketGender.getStrFromEnum(
+                    val=int(res["shipping_address"]["gender"]))
+                res["billing_address"]["gender"] = BackMarketGender.getStrFromEnum(
+                    val=int(res["billing_address"]["gender"]))
                 for order in res["orderlines"]:
                     order["state"] = BackMarketOrderlinesStates.getStrFromEnum(val=int(order["state"]))
 
-            oldLen = len(orders)
-            orders += [res for res in results if
-                       to_datetime(res["date_creation"]).strftime("%Y-%m-%d %H:%M:%S") <= end]
+            oldLen = len(data)
+            if not endDate:
+                data += [res for res in results]
+            else:
+                data += [res for res in results if
+                         (to_datetime(res["date_creation"]).strftime("%Y-%m-%d %H:%M:%S") <= endDate)]
 
             # all older orders
-            if len(orders) - oldLen == 0:
+            if len(data) - oldLen == 0:
                 print(f"Reached the stage of older orders. Breaking out")
                 break
 
-        print(f"Back Market: {numOrders=}")
-        return orders
+        print(f"Back Market: {orderCounter=}")
+        return data
+
+    def getOrdersByLastModified(self, lastModifiedDate):
+
+        start = self.convertDateTimeToString(lastModifiedDate, " 00:00:00")
+        print(f"INFO: Sending request to BM")
+        return self.crawlURL(f"https://www.backmarket.fr/ws/orders?date_modification={start}", None)
 
     def getSpecificOrder(self, orderID):
         print(f"INFO: Sending request to BM")
@@ -109,3 +124,12 @@ class BackMarketClient(MarketPlaceClient):
             raise GenericAPIException(resp.reason)
 
         return resp.json()
+
+
+if __name__ == "__main__":
+    bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4",
+                     itemKeyName="orderlines", dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+    with open("dump.json", "w") as f:
+        f.write(json.dumps(bm.getOrdersByLastModified(lastModifiedDate=datetime.datetime.now() - datetime.timedelta(days=4))
+                           , indent=3))
+
