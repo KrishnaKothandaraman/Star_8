@@ -153,7 +153,7 @@ columnMapping = {
             "Refurbed": "parcel_tracking_url"
         },
         "tracking_number": {
-            "BackMarket": "item_identifier",
+            "BackMarket": None,
             "Refurbed": "tracking_number"
         },
         "payment_method": {
@@ -177,6 +177,10 @@ columnMapping = {
         "item_name": {
             "BackMarket": "product",
             "Refurbed": "name"
+        },
+        "item_identifier": {
+            "BackMarket": "imei+serial_number",
+            "Refurbed": "item_identifier"
         },
         "item_state": {
             "BackMarket": "state",
