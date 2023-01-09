@@ -1,15 +1,7 @@
-import sys
-import os
-
-# add root to paths
-sys.path.append(os.path.join(""))
-
 from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
 import io
 from typing import List, Dict, Tuple
 import apiclient
-import googleapiclient.http
-from gdoctableapppy import gdoctableapp
 from googleapiclient.http import MediaIoBaseDownload
 from core.config.googleServiceConfiguration import GOOGLE_DRIVE_SERVICE_NAME, GOOGLE_SHEETS_SERVICE_NAME
 from core.google_services.googleAppServiceFactory import GoogleAppServiceFactory
