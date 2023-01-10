@@ -42,7 +42,7 @@ class MarketPlaceClient:
                     joinedVal += str(val.get(col))
                 val = joinedVal
             else:
-                val = val.get(level, "")
+                val = val.get(level, "-")
         return val
 
     @staticmethod
