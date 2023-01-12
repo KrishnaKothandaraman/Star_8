@@ -62,15 +62,7 @@ class BackMarketClient(MarketPlaceClient):
         self.dateStringFormat = dateStringFormat
         self.itemKeyName = itemKeyName
 
-    def getOrdersBetweenDates(self, start: datetime.datetime, end: datetime.datetime):
-
-        start = self.convertDateTimeToString(start, " 00:00:00")
-        end = self.convertDateTimeToString(end, " 23:59:59")
-        print(f"Filtering between {start} {end}")
-        return self.crawlURL(url=f"https://www.backmarket.fr/ws/orders?date_creation={start}", endDate=end)
-
     def crawlURL(self, url, endDate: Optional[str]):
-
         data = []
         orderCounter = 0
         while url:
@@ -108,13 +100,20 @@ class BackMarketClient(MarketPlaceClient):
         print(f"Back Market: {orderCounter=}")
         return data
 
+    def getOrdersBetweenDates(self, start: datetime.datetime, end: datetime.datetime):
+
+        start = self.convertDateTimeToString(start, " 00:00:00")
+        end = self.convertDateTimeToString(end, " 23:59:59")
+        print(f"Filtering between {start} {end}")
+        return self.crawlURL(url=f"https://www.backmarket.fr/ws/orders?date_creation={start}", endDate=end)
+
     def getOrdersByLastModified(self, lastModifiedDate):
 
         start = self.convertDateTimeToString(lastModifiedDate, " 00:00:00")
         print(f"INFO: Sending request to BM")
         return self.crawlURL(f"https://www.backmarket.fr/ws/orders?date_modification={start}", None)
 
-    def getSpecificOrder(self, orderID):
+    def getOrderByID(self, orderID):
         print(f"INFO: Sending request to BM")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
 
@@ -125,11 +124,20 @@ class BackMarketClient(MarketPlaceClient):
 
         return resp.json()
 
+    def getOrdersByState(self, state):
+
+        print(f"INFO: Sending request to BM for {state=}")
+        url = f"https://www.backmarket.fr/ws/orders/?state={state}&page-size=50&page=1"
+
+        return self.crawlURL(url=url, endDate=None)
+
 
 if __name__ == "__main__":
     bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4",
-                     itemKeyName="orderlines", dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
-    with open("dump.json", "w") as f:
-        f.write(json.dumps(bm.getOrdersByLastModified(lastModifiedDate=datetime.datetime.now() - datetime.timedelta(days=4))
-                           , indent=3))
+                          itemKeyName="orderlines", dateFieldName="date_creation",
+                          dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+    # with open("dump.json", "w") as f:
+    #     f.write(
+    #         json.dumps(bm.getOrdersByState(state=1), indent=3))
 
+    print(bm.getOrderByID(2584017))

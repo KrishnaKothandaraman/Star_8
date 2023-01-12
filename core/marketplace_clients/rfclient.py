@@ -4,6 +4,7 @@ import requests
 
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
+from get_order_history import keys
 
 
 class RefurbedClient(MarketPlaceClient):
@@ -57,3 +58,20 @@ class RefurbedClient(MarketPlaceClient):
 
         print(f"Refurbed {len(orders)}")
         return orders
+
+    def getOrderByID(self, orderID):
+        print(f"INFO: Sending request to RF")
+
+        resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
+                             headers={
+                                 "Authorization": self.key}, data=json.dumps({"id": str(orderID)}))
+
+        if resp.status_code != 200:
+            raise GenericAPIException(resp.reason)
+
+        return resp.json()
+
+#
+# RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
+#                                dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
+# print(RFAPIInstance.getOrderByID(2584017))

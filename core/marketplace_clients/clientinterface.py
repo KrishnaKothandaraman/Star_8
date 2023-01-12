@@ -36,7 +36,7 @@ class MarketPlaceClient:
         val = order
         for i, level in enumerate(multiLevelCol):
             # last level. There could be column joining through + operation
-            if i == len(multiLevelCol) - 1 and len(level.split("+")) > 0:
+            if i == len(multiLevelCol) - 1 and len(level.split("+")) > 1:
                 joinedVal = ""
                 for col in level.split("+"):
                     joinedVal += str(val.get(col))

@@ -9,7 +9,7 @@ from get_order_history import keys
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
 SPREADSHEET_ID = "19OXMfru14WMEI4nja9SCAljnCDrHlw33SHLO77vAmVo"
-SPREADSHEET_NAME = "tester"
+SPREADSHEET_NAME = "Combined_Orders"
 
 
 def performAddNewOrdersUpdate(service, BMAPIInstance: BackMarketClient, RFAPIInstance: RefurbedClient):
@@ -32,6 +32,7 @@ def performAddNewOrdersUpdate(service, BMAPIInstance: BackMarketClient, RFAPIIns
         "BackMarket": [],
         "Refurbed": []
     }
+
     for order in RFNewOrders:
         if str(order["id"]) not in googleSheetOrderIDs:
             ordersToBeAdded["Refurbed"].append(order)
@@ -139,7 +140,7 @@ def updateGoogleSheetNonApi():
     startOffset = 20
     endOffset = 0
 
-    for i in range(16, 35):
+    for i in range(0, 35):
         startDatetime = datetime.datetime.now() - datetime.timedelta(days=startOffset + (i * offset))
         nowDateTime = datetime.datetime.now() - datetime.timedelta(days=endOffset + (i * offset))
         RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=startDatetime, end=nowDateTime)
@@ -182,4 +183,4 @@ def updateGoogleSheetNonApi():
 # BMAPIInstance = BackMarketClient(key=keys["BM"]["token"], itemKeyName="orderlines",
 #                                  dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
 # #print(performAddNewOrdersUpdate(service, BMAPIInstance=BMAPIInstance, RFAPIInstance=RFAPIInstance))
-# print(performUpdateExistingOrdersUpdate(service, BMAPIInstance=BMAPIInstance, RFAPIInstance=RFAPIInstance))
+# print(updateGoogleSheetNonApi())

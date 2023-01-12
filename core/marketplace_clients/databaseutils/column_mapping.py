@@ -164,8 +164,8 @@ columnMapping = {
             "Refurbed": "parcel_tracking_url"
         },
         "tracking_number": {
-            "BackMarket": None,
-            "Refurbed": "tracking_number"
+            "BackMarket": "tracking_number",
+            "Refurbed": None
         },
         "payment_method": {
             "BackMarket": "payment_method",

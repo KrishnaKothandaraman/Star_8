@@ -1,11 +1,13 @@
-from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
+from core.custom_exceptions.general_exceptions import IncorrectAuthTokenException
+from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitleException
 import time
 import traceback
 from flask_cors import CORS, cross_origin
 import googleapiclient.errors
 from flask import Flask, request, make_response, jsonify, send_file
 from core.google_services.googleSheetsService import GoogleSheetsService
-import services.databaseManagement.controller.orders_controller as orders_controller
+import services.databaseManagement.controller.orders_database_controller as ordersdb_controller
+import services.databaseManagement.controller.addorders_controller as addorders_controller
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.rfclient import RefurbedClient
 from get_order_history import keys
@@ -17,9 +19,19 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route('/update-googlesheet', methods=['POST'])
 def updateGoogleSheet():
-    start = time.time()
     try:
+        key = request.headers.get('auth-token')
+
+        if not key or key != keys["auth-token"]:
+            raise IncorrectAuthTokenException("Incorrect auth token provided")
+        start = time.time()
         service = GoogleSheetsService()
+
+    except IncorrectAuthTokenException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             401)
     except Exception:
         print(traceback.print_exc())
         return make_response(jsonify({"type": "fail",
@@ -32,11 +44,11 @@ def updateGoogleSheet():
         BMAPIInstance = BackMarketClient(key=keys["BM"]["token"], itemKeyName="orderlines",
                                          dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
 
-        recordsUpdated = orders_controller.performUpdateExistingOrdersUpdate(service=service,
+        recordsUpdated = ordersdb_controller.performUpdateExistingOrdersUpdate(service=service,
                                                                              BMAPIInstance=BMAPIInstance,
                                                                              RFAPIInstance=RFAPIInstance)
 
-        newRecordsAdded = orders_controller.performAddNewOrdersUpdate(service=service,
+        newRecordsAdded = ordersdb_controller.performAddNewOrdersUpdate(service=service,
                                                                       BMAPIInstance=BMAPIInstance,
                                                                       RFAPIInstance=RFAPIInstance)
 
@@ -60,6 +72,33 @@ def updateGoogleSheet():
                              400)
     except Exception:
         print(traceback.print_exc())
+        return make_response(jsonify({"type": "fail",
+                                      "message": "Contact support. Check server logs"
+                                      }),
+                             500)
+
+
+@app.route("/swd-add-order", methods=["POST"])
+def swdAddOrder():
+    try:
+        key = request.headers.get('auth-token')
+
+        if not key or key != keys["auth-token"]:
+            raise IncorrectAuthTokenException("Incorrect auth token provided")
+
+        addorders_controller.performSWDAddOrder()
+
+        return make_response(jsonify({"type": "success",
+                                      "message": "Done"
+                                      }),
+                             200)
+
+    except IncorrectAuthTokenException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             401)
+    except Exception:
         return make_response(jsonify({"type": "fail",
                                       "message": "Contact support. Check server logs"
                                       }),
