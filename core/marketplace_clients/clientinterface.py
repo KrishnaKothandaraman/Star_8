@@ -9,6 +9,7 @@ class MarketPlaceClient:
     dateFieldName: str
     dateStringFormat: str
     itemKeyName: str
+    skuFieldName: str
 
     def __init__(self, key):
         self.key = key
@@ -67,3 +68,9 @@ class MarketPlaceClient:
                                                                          order[self.itemKeyName][i])
                 formattedOrdersList.append(formattedOrder)
         return formattedOrdersList
+
+    def getOrderItems(self, order):
+        return order[self.itemKeyName]
+
+    def getSku(self, orderItem):
+        return orderItem[self.skuFieldName]

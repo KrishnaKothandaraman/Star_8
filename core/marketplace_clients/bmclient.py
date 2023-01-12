@@ -53,14 +53,25 @@ class BackMarketOrderlinesStates(enum.Enum):
         }[val]
 
 
+#############
+# Constants #
+#############
+
+BMDateStringFormat = "%Y-%m-%dT%H:%M:%S%z"
+BMDateFieldName = "date_creation"
+BMItemKeyName = "orderlines"
+BMSKUFieldName = "listing"
+
+
 class BackMarketClient(MarketPlaceClient):
 
-    def __init__(self, key: str, dateFieldName: str, dateStringFormat: str, itemKeyName: str):
+    def __init__(self, key: str):
         super().__init__(key)
         self.vendor = "BackMarket"
-        self.dateFieldName = dateFieldName
-        self.dateStringFormat = dateStringFormat
-        self.itemKeyName = itemKeyName
+        self.dateFieldName = BMDateFieldName
+        self.dateStringFormat = BMDateStringFormat
+        self.itemKeyName = BMItemKeyName
+        self.skuFieldName = BMSKUFieldName
 
     def crawlURL(self, url, endDate: Optional[str]):
         data = []
