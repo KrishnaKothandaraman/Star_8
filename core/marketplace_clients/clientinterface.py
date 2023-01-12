@@ -10,6 +10,7 @@ class MarketPlaceClient:
     dateStringFormat: str
     itemKeyName: str
     skuFieldName: str
+    orderIDFieldName: str
 
     def __init__(self, key):
         self.key = key
@@ -74,3 +75,6 @@ class MarketPlaceClient:
 
     def getSku(self, orderItem):
         return orderItem[self.skuFieldName]
+
+    def getOrderID(self, order):
+        return order[self.orderIDFieldName]

@@ -61,6 +61,7 @@ BMDateStringFormat = "%Y-%m-%dT%H:%M:%S%z"
 BMDateFieldName = "date_creation"
 BMItemKeyName = "orderlines"
 BMSKUFieldName = "listing"
+BMOrderIDFieldName = "order_id"
 
 
 class BackMarketClient(MarketPlaceClient):
@@ -72,6 +73,7 @@ class BackMarketClient(MarketPlaceClient):
         self.dateStringFormat = BMDateStringFormat
         self.itemKeyName = BMItemKeyName
         self.skuFieldName = BMSKUFieldName
+        self.orderIDFieldName = BMOrderIDFieldName
 
     def crawlURL(self, url, endDate: Optional[str]):
         data = []
@@ -144,9 +146,7 @@ class BackMarketClient(MarketPlaceClient):
 
 
 if __name__ == "__main__":
-    bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4",
-                          itemKeyName="orderlines", dateFieldName="date_creation",
-                          dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+    bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4")
     # with open("dump.json", "w") as f:
     #     f.write(
     #         json.dumps(bm.getOrdersByState(state=1), indent=3))

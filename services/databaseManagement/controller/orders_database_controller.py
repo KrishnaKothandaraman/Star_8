@@ -4,7 +4,7 @@ import traceback
 from core.google_services.googleSheetsService import GoogleSheetsService
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.rfclient import RefurbedClient
-from get_order_history import keys
+from keys import keys
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"

@@ -4,11 +4,11 @@ import json
 import random
 import string
 import time
-
 import requests
+from typing import Tuple, List
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.bmclient import BackMarketClient
-from get_order_history import keys
+from keys import keys
 
 
 # utility function for swd authentication
@@ -36,6 +36,29 @@ def generateSWDAuthJson():
     }
 
 
+def updateAppSheetWithRows(rows: List):
+    requests.post(
+        url='https://api.appsheet.com/api/v2/apps/6aec3910-fe2b-4d41-840e-aee105698fe3/tables/Order_Notice/Add',
+        headers={'Content-Type': 'application/json',
+                 'applicationAccessKey': keys["appsheet_accesskey"]},
+        data={
+            "mode": 'raw',
+            "raw": {
+                "Action": "Add",
+                "Properties": {
+                    "Locale": "en-US",
+                    "Location": "47.623098, -122.330184",
+                    "Timezone": "Pacific Standard Time",
+                    "UserSettings": {
+                        "Option 1": "value1",
+                        "Option 2": "value2"
+                    }
+                },
+                "Rows": rows
+            }
+        })
+
+
 def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
     headers = {"Tracking-Api-Key": keys["remote-check"]}
     body = {
@@ -51,14 +74,19 @@ def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
     return remoteCheckResp.json()["code"]
 
 
-def performSWDStockCheck(listing: str):
+def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
-                "listing": listing}
+                "sku": sku}
     stockCheckResp = requests.post(url="https://admin.shopwedo.com/api/getStock", data=formData)
 
-    print(stockCheckResp.status_code)
-    print(stockCheckResp.json())
-    return ""
+    if stockCheckResp.status_code != 200:
+        raise GenericAPIException
+
+    for obj in stockCheckResp.json():
+        if obj["reference2"] == sku and obj["atp"] > 0:
+            return True, obj["description"], obj["atp"]
+
+    return False, "", ""
 
 
 def performSWDAddOrder():
@@ -75,7 +103,18 @@ def performSWDAddOrder():
 
         for orderline in orderItems:
             listing = bmClient.getSku(orderline)
-            stockExists = performSWDStockCheck(listing)
-            break
-        break
+            stockExists, swdModelName, stockAmount = performSWDStockCheck(listing)
+
+            if not stockExists:
+                updateAppSheetWithRows(rows=[{"order_id": bmClient.getOrderID(order),
+                                              "Note": f"This Over _sell  {listing}  need ask the Buyer change to "
+                                                      f"other: / some Stock waiting Book in / "
+                                              }]
+                                       )
+                break
+        # else here means the inner loop was excited normally. No break
+        else:
+            pass
+
+
 performSWDAddOrder()
