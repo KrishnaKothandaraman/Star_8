@@ -12,12 +12,13 @@ SPREADSHEET_ID = "19OXMfru14WMEI4nja9SCAljnCDrHlw33SHLO77vAmVo"
 SPREADSHEET_NAME = "Combined_Orders"
 
 
-def performAddNewOrdersUpdate(service, BMAPIInstance: BackMarketClient, RFAPIInstance: RefurbedClient):
+def performAddNewOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackMarketClient, RFAPIInstance: RefurbedClient, days: int):
     """
     Appends new orders to the bottom of the sheet
     :param service: SheetsService
     :param BMAPIInstance: MarketPlaceClient
     :param RFAPIInstance: MarketPlaceClient
+    :param days: Number of days back from today to pull the new records for
     :return:
     """
     googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME,
@@ -25,8 +26,8 @@ def performAddNewOrdersUpdate(service, BMAPIInstance: BackMarketClient, RFAPIIns
     googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
     nowDateTime = datetime.datetime.now()
-    RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime, end=nowDateTime)
-    BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime, end=nowDateTime)
+    RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(days), end=nowDateTime)
+    BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(days), end=nowDateTime)
 
     ordersToBeAdded = {
         "BackMarket": [],
@@ -35,11 +36,12 @@ def performAddNewOrdersUpdate(service, BMAPIInstance: BackMarketClient, RFAPIIns
 
     for order in RFNewOrders:
         if str(order["id"]) not in googleSheetOrderIDs:
-            ordersToBeAdded["Refurbed"].append(order)
+            ordersToBeAdded["Refurbed"].append(RFAPIInstance.convertOrderToSheetColumns(order))
 
     for order in BMnewOrders:
         if str(order["order_id"]) not in googleSheetOrderIDs:
-            ordersToBeAdded["BackMarket"].append(order)
+            print(f"Didn't find {order['order_id']} so adding it")
+            ordersToBeAdded["BackMarket"].append(BMAPIInstance.convertOrderToSheetColumns(order))
 
     """
     Step 1 is to flatten everything except the orderlines
@@ -47,17 +49,14 @@ def performAddNewOrdersUpdate(service, BMAPIInstance: BackMarketClient, RFAPIIns
     # contains flattened order list to upload to sheets
     flattenedOrderList = []
 
-    convertedBMOrders = BMAPIInstance.convertOrdersToSheetColumns(ordersToBeAdded["BackMarket"])
-    convertedRFOrders = RFAPIInstance.convertOrdersToSheetColumns(ordersToBeAdded["Refurbed"])
-
-    flattenedOrderList += [list(d.values()) for d in convertedRFOrders + convertedBMOrders]
+    flattenedOrderList += [list(d.values()) for d in ordersToBeAdded["Refurbed"] + ordersToBeAdded["BackMarket"]]
 
     service.appendValuesToBottomOfSheet(data=flattenedOrderList, sheetTitle=SPREADSHEET_NAME,
                                         documentID=SPREADSHEET_ID)
     return len(flattenedOrderList)
 
 
-def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstance, RFAPIInstance):
+def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackMarketClient, RFAPIInstance: RefurbedClient):
     """
     Updates details orders that were placed in the last 2 days
     :param service: SheetsService
@@ -72,7 +71,9 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
                                                      sheetName=SPREADSHEET_NAME,
                                                      column="AQ")
 
-    googleSheetIDS = {f"{item[0][0]}_{item[1][0]}": idx + 1 for idx, item in enumerate(list(zip(googleSheetOrderIDs[1:], googleSheetItemIDs[1:]))) if len(item) > 0}
+    googleSheetIDS = {f"{item[0][0]}_{item[1][0]}": idx + 1 for idx, item in
+                      enumerate(list(zip(googleSheetOrderIDs[1:], googleSheetItemIDs[1:]))) if
+                      (len(item) > 1 and len(item[0]) > 0 and len(item[1]) > 0)}
 
     # check for updates from the last two days
     nowDateTime = datetime.datetime.now()
@@ -88,24 +89,21 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
         for item in order["items"]:
             primaryKey = f"{order['id']}_{item['id']}"
             if primaryKey in googleSheetIDS:
-                ordersToBeUpdated["Refurbed"].append({"data": order, "row": googleSheetIDS[primaryKey]})
+                ordersToBeUpdated["Refurbed"].append({"data": RFAPIInstance.convertOrderToSheetColumns(order),
+                                                      "row": googleSheetIDS[primaryKey]})
 
     for order in BMnewOrders:
         for item in order["orderlines"]:
             primaryKey = f"{order['order_id']}_{item['id']}"
             if primaryKey in googleSheetIDS:
-                ordersToBeUpdated["BackMarket"].append({"data": order, "row": googleSheetIDS[primaryKey]})
+                ordersToBeUpdated["BackMarket"].append({"data": BMAPIInstance.convertOrderToSheetColumns(order),
+                                                        "row": googleSheetIDS[primaryKey]})
 
     # contains flattened order list to upload to sheets
     flattenedOrderList = []
-
-    convertedBMOrders = BMAPIInstance.convertOrdersToSheetColumns(
-        [order["data"] for order in ordersToBeUpdated["BackMarket"]])
-    convertedRFOrders = RFAPIInstance.convertOrdersToSheetColumns(
-        [order["data"] for order in ordersToBeUpdated["Refurbed"]])
-
-    flattenedOrderList += [list(d.values()) for d in convertedRFOrders + convertedBMOrders]
-    flattenedRowNumberList = [row["row"] for row in (ordersToBeUpdated["Refurbed"] + ordersToBeUpdated["BackMarket"])]
+    flattenedRowNumberList = []
+    flattenedOrderList += [list(d["data"].values()) for d in ordersToBeUpdated["BackMarket"] + ordersToBeUpdated["Refurbed"]]
+    flattenedRowNumberList += [d["row"] for d in ordersToBeUpdated["BackMarket"] + ordersToBeUpdated["Refurbed"]]
 
     service.updateEntireRowValuesFromRowNumber(sheetTitle=SPREADSHEET_NAME,
                                                documentID=SPREADSHEET_ID,
@@ -175,7 +173,6 @@ def updateGoogleSheetNonApi():
         end = time.time()
 
         print(f"Time taken to handle this request between {startOffset=}, {endOffset=}: {end - start}")
-
 
 # service = GoogleSheetsService()
 # RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
