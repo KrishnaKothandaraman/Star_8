@@ -75,13 +75,16 @@ class BackMarketClient(MarketPlaceClient):
         self.skuFieldName = BMSKUFieldName
         self.orderIDFieldName = BMOrderIDFieldName
 
+    def getAuthHeader(self):
+        return {"Authorization": f"Basic {self.key}"}
+
     def crawlURL(self, url, endDate: Optional[str]):
         data = []
         orderCounter = 0
         while url:
             print(f"Making call to {url}")
             resp = requests.get(url=url,
-                                headers={"Authorization": f"basic {self.key}"})
+                                headers=self.getAuthHeader())
             if resp.status_code != 200:
                 print(f"Error occured {resp.status_code}")
                 raise GenericAPIException(resp.reason)
@@ -130,7 +133,7 @@ class BackMarketClient(MarketPlaceClient):
         print(f"INFO: Sending request to BM")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
 
-        resp = requests.get(url=url, headers={"Authorization": f"basic {self.key}"})
+        resp = requests.get(url=url, headers=self.getAuthHeader())
 
         if resp.status_code != 200:
             raise GenericAPIException(resp.reason)
@@ -144,20 +147,20 @@ class BackMarketClient(MarketPlaceClient):
 
         return self.crawlURL(url=url, endDate=None)
 
-    def updateOrderStateByOrderID(self, orderID: str, newState: int) -> int:
-        print(f"BM: Updating state of {orderID}")
+    def updateOrderStateByOrderID(self, orderID: str, sku: str, newState: int) -> requests.Response:
+
+        print(f"BM: Updating state of {orderID} and sku {sku}")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
         body = {
-            "order_id": orderID,
+            "order_id": int(orderID),
             "new_state": newState,
+            "sku": sku
         }
-
+        print(f"Sending {body=}")
         resp = requests.post(url=url,
-                             headers={"Authorization": f"basic {self.key}"},
-                             data=json.dumps(body))
-        print(f"Updates state of {orderID} to {newState}. Return code {resp.status_code}")
-
-        return resp.status_code
+                             headers=self.getAuthHeader(),
+                             data=body)
+        return resp
 
 
 # if __name__ == "__main__":
@@ -166,4 +169,8 @@ class BackMarketClient(MarketPlaceClient):
 #     #     f.write(
 #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
 #
-#     print(bm.getOrderByID(2584017))
+#     # print(bm.getOrderByID("25923025"))
+#     resp = bm.updateOrderStateByOrderID(orderID="25923025", sku="002652SH", newState=2)
+#     print(resp.status_code)
+#     print(resp.json())
+#     print(resp.reason)

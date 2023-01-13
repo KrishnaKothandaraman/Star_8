@@ -79,5 +79,5 @@ class MarketPlaceClient:
     def getOrderID(self, order):
         return order[self.orderIDFieldName]
 
-    def updateOrderStateByOrderID(self, orderID, newState):
+    def updateOrderStateByOrderID(self, orderID, sku, newState):
         raise NotImplementedError

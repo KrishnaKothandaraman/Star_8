@@ -119,20 +119,13 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     return False, "", ""
 
 
-def performSWDCreateOrder(formattedOrder, items, MarketClient: MarketPlaceClient):
+def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
     print(f"Creating order for {formattedOrder}")
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps(getSWDCreateOrderBody(formattedOrder, items))}
     print(formData)
     createOrderResponse = requests.post(url="https://admin.shopwedo.com/api/createOrder", data=formData)
-    if createOrderResponse.status_code != 201:
-        updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
-                                      "Note": f"Shop we do add order failed. Error code: {createOrderResponse.status_code}"
-                                              f",Error json {createOrderResponse.json()}"
-                                      }]
-                               )
-    else:
-        MarketClient.updateOrderStateByOrderID(formattedOrder["order_id"], 2)
+    return createOrderResponse
 
 
 def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
@@ -228,8 +221,26 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
         else:
             print(f"All stock exists for order {swdModelName}")
             items = generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
-            performSWDCreateOrder(formattedOrder, items, MarketClient)
-
+            createOrderResp = performSWDCreateOrder(formattedOrder, items)
+            if createOrderResp.status_code != 201:
+                updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
+                                              "Note": f"Shop we do add order failed. Error code: {createOrderResp.status_code}"
+                                                      f",Error json {createOrderResp.json()}"
+                                              }]
+                                       )
+            else:
+                errors = 0
+                for orderline in orderItems:
+                    sku = MarketClient.getSku(orderline)
+                    resp = MarketClient.updateOrderStateByOrderID(str(formattedOrder["order_id"]), 2, sku)
+                    if resp.status_code != 200:
+                        print(f"ERROR for {formattedOrder['order_id']}{sku}. "
+                              f"Manully check in. Updated Failed: Code: {resp.status_code}, Resp: {resp.json()}")
+                        errors += 1
+                    else:
+                        print(f"Updated state of {formattedOrder['order_id']} to {3}. Return code {resp.status_code}")
+                if errors:
+                    raise GenericAPIException
 
 def performSWDAddOrder():
     """Call this method to run the workflow to pull new orders and add orders to SWD"""
