@@ -26,7 +26,6 @@ class MarketPlaceClient:
             2. String value of type level1/level2/level3 to specify keys of different levels in the dictionary
             3. None value -> returns empty string
         """
-
         if not col:
             return "-"
 
@@ -45,6 +44,10 @@ class MarketPlaceClient:
                 val = joinedVal
             else:
                 val = val.get(level, "-")
+
+        if val is None:
+            val = ""
+
         return val
 
     @staticmethod
@@ -56,8 +59,8 @@ class MarketPlaceClient:
         return datetime.datetime.strptime(inputString, inputFormat).strftime(outputFormat)
 
     def convertOrderToSheetColumns(self, order: dict):
+        formattedOrder = {}
         for i, _ in enumerate(order[self.itemKeyName]):
-            formattedOrder = {}
             for col, mapping in columnMapping["global"].items():
                 formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor], order)
                 if mapping[self.vendor] == self.dateFieldName:

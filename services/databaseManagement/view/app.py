@@ -100,6 +100,7 @@ def swdAddOrder():
                                       }),
                              401)
     except Exception:
+        print(traceback.print_exc())
         return make_response(jsonify({"type": "fail",
                                       "message": "Contact support. Check server logs"
                                       }),
