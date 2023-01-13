@@ -144,11 +144,26 @@ class BackMarketClient(MarketPlaceClient):
 
         return self.crawlURL(url=url, endDate=None)
 
+    def updateOrderStateByOrderID(self, orderID: str, newState: int) -> int:
+        print(f"BM: Updating state of {orderID}")
+        url = f"https://www.backmarket.fr/ws/orders/{orderID}"
+        body = {
+            "order_id": orderID,
+            "new_state": newState,
+        }
 
-if __name__ == "__main__":
-    bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4")
-    # with open("dump.json", "w") as f:
-    #     f.write(
-    #         json.dumps(bm.getOrdersByState(state=1), indent=3))
+        resp = requests.post(url=url,
+                             headers={"Authorization": f"basic {self.key}"},
+                             data=json.dumps(body))
+        print(f"Updates state of {orderID} to {newState}. Return code {resp.status_code}")
 
-    print(bm.getOrderByID(2584017))
+        return resp.status_code
+
+
+# if __name__ == "__main__":
+#     bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4")
+#     # with open("dump.json", "w") as f:
+#     #     f.write(
+#     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
+#
+#     print(bm.getOrderByID(2584017))

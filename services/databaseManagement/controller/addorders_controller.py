@@ -40,16 +40,16 @@ def generateSWDAuthJson():
 def getSWDCreateOrderBody(formattedOrder: dict, items: []):
     """Returns body for swd create order request from formatted order"""
     return {
-        "external_order_id": formattedOrder["order_id"],
-        "external_order_reference": formattedOrder["order_id"],
+        "external_order_id": str(formattedOrder["order_id"]),
+        "external_order_reference": str(formattedOrder["order_id"]),
         "release": "y",
         "shipping_method": "ship",
         "shipping_company": formattedOrder["shipper"],
         "shipping_address": {
             "firstname": formattedOrder["shipping_first_name"],
-            "last_name": formattedOrder["shipping_last_name"],
+            "lastname": formattedOrder["shipping_last_name"],
             "company": formattedOrder["company"],
-            "street": json.dumps(f"{formattedOrder['shipping_address1']},{formattedOrder['shipping_address1']}"),
+            "street": f"{formattedOrder['shipping_address1']},{formattedOrder['shipping_address1']}",
             "box": "",
             "zip": formattedOrder["shipping_postal_code"],
             "city": formattedOrder["shipping_city"],
@@ -104,13 +104,10 @@ def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
 def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps({"reference": sku})}
-    print(formData)
     stockCheckResp = requests.post(url="https://admin.shopwedo.com/api/getStock", data=formData)
 
     if stockCheckResp.status_code != 200:
         raise GenericAPIException
-    with open("dump.json", "w") as f:
-        f.write(json.dumps(stockCheckResp.json(), indent=3))
     # loop through response and check master_atp field which is stock for this listing
     for listing, data in stockCheckResp.json().items():
         if data["reference2"] == sku:
@@ -122,11 +119,77 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     return False, "", ""
 
 
-def performSWDCreateOrder(formattedOrder):
+def performSWDCreateOrder(formattedOrder, items, MarketClient: MarketPlaceClient):
+    print(f"Creating order for {formattedOrder}")
     formData = {"auth": json.dumps(generateSWDAuthJson()),
-                "data": json.dumps(getSWDCreateOrderBody(formattedOrder, []))}
+                "data": json.dumps(getSWDCreateOrderBody(formattedOrder, items))}
     print(formData)
-    # stockCheckResp = requests.post(url="https://admin.shopwedo.com/api/getStock", data=formData)
+    createOrderResponse = requests.post(url="https://admin.shopwedo.com/api/createOrder", data=formData)
+    if createOrderResponse.status_code != 201:
+        updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
+                                      "Note": f"Shop we do add order failed. Error code: {createOrderResponse.status_code}"
+                                              f",Error json {createOrderResponse.json()}"
+                                      }]
+                               )
+    else:
+        MarketClient.updateOrderStateByOrderID(formattedOrder["order_id"], 2)
+
+
+def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+    items = []
+    for orderItem in orderItems:
+        listing = orderItem["listing"]
+        quantity = orderItem["quantity"]
+        price = orderItem["price"]
+        productItem = {
+            "skuType": "reference",
+            "sku": listing,
+            "amount": quantity,
+            "price": price
+        }
+        adapterItem = {
+            "skuType": "reference",
+            "sku": "002204",
+            "amount": quantity,
+            "price": 2
+        }
+        if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
+            adapterItem = {
+                "skuType": "reference",
+                "sku": "002479",
+                "amount": quantity,
+                "price": 2
+            }
+        elif "EUS" in swdModelName and "iPad 7" in swdModelName:
+            adapterItem = {
+                "skuType": "reference",
+                "sku": "002351",
+                "amount": quantity,
+                "price": 2
+            }
+        elif "EUS" in swdModelName and any(
+                substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+            adapterItem = {
+                "skuType": "reference",
+                "sku": "002478",
+                "amount": quantity,
+                "price": 2
+            }
+        elif "EUS" in swdModelName and any(
+                substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
+            adapterItem = {
+                "skuType": "reference",
+                "sku": "002331",
+                "amount": quantity,
+                "price": 2
+            }
+        elif "EUS" not in swdModelName:
+            adapterItem = None
+
+        items.append(productItem)
+        if adapterItem:
+            items.append(adapterItem)
+    return items
 
 
 def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
@@ -142,7 +205,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
                                              formattedOrder["shipping_postal_code"],
                                              formattedOrder["shipper"].split(" ")[0])
         orderItems = MarketClient.getOrderItems(order)
-
+        stockExists, swdModelName, stockAmount = "", "", ""
         # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
         if float(formattedOrder["total_charged"]) < 800 and remoteCheckCode == 204 \
                 and len(formattedOrder["shipper"].split(" ")) == 1:
@@ -163,9 +226,9 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
 
         # else here means the orderline loop was excited normally. No break
         else:
-            print("All stock exists for order")
-            print(formattedOrder)
-            performSWDCreateOrder(formattedOrder)
+            print(f"All stock exists for order {swdModelName}")
+            items = generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
+            performSWDCreateOrder(formattedOrder, items, MarketClient)
 
 
 def performSWDAddOrder():
