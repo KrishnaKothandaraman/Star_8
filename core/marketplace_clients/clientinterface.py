@@ -55,20 +55,17 @@ class MarketPlaceClient:
     def convertBetweenDateTimeStringFormats(inputString: str, inputFormat: str, outputFormat: str) -> str:
         return datetime.datetime.strptime(inputString, inputFormat).strftime(outputFormat)
 
-    def convertOrdersToSheetColumns(self, orders: List[dict]):
-        formattedOrdersList = []
-        for order in orders:
-            for i, _ in enumerate(order[self.itemKeyName]):
-                formattedOrder = {}
-                for col, mapping in columnMapping["global"].items():
-                    formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor], order)
-                    if mapping[self.vendor] == self.dateFieldName:
-                        formattedOrder[col] = self.convertBetweenDateTimeStringFormats(formattedOrder[col], self.dateStringFormat, "%Y-%m-%d %H:%M:%S")
-                for col, mapping in columnMapping["items"].items():
-                    formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor],
-                                                                         order[self.itemKeyName][i])
-                formattedOrdersList.append(formattedOrder)
-        return formattedOrdersList
+    def convertOrderToSheetColumns(self, order: dict):
+        for i, _ in enumerate(order[self.itemKeyName]):
+            formattedOrder = {}
+            for col, mapping in columnMapping["global"].items():
+                formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor], order)
+                if mapping[self.vendor] == self.dateFieldName:
+                    formattedOrder[col] = self.convertBetweenDateTimeStringFormats(formattedOrder[col], self.dateStringFormat, "%Y-%m-%d %H:%M:%S")
+            for col, mapping in columnMapping["items"].items():
+                formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor],
+                                                                     order[self.itemKeyName][i])
+        return formattedOrder
 
     def getOrderItems(self, order):
         return order[self.itemKeyName]

@@ -3,6 +3,7 @@ from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitle
 import time
 import traceback
 from flask_cors import CORS, cross_origin
+import werkzeug.exceptions as HTTPExceptions
 import googleapiclient.errors
 from flask import Flask, request, make_response, jsonify, send_file
 from core.google_services.googleSheetsService import GoogleSheetsService
@@ -10,7 +11,7 @@ import services.databaseManagement.controller.orders_database_controller as orde
 import services.databaseManagement.controller.addorders_controller as addorders_controller
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.rfclient import RefurbedClient
-from get_order_history import keys
+from keys import keys
 
 app = Flask(__name__)
 CORS(app)
@@ -22,35 +23,25 @@ def updateGoogleSheet():
     try:
         key = request.headers.get('auth-token')
 
+        body = request.get_json()
+        numberOfDaysToUpdate = body["days"] if "days" in body else 0
+
         if not key or key != keys["auth-token"]:
             raise IncorrectAuthTokenException("Incorrect auth token provided")
+
         start = time.time()
         service = GoogleSheetsService()
-
-    except IncorrectAuthTokenException as e:
-        return make_response(jsonify({"type": "fail",
-                                      "message": e.args[0]
-                                      }),
-                             401)
-    except Exception:
-        print(traceback.print_exc())
-        return make_response(jsonify({"type": "fail",
-                                      "message": "Failed to open Google Sheets. Check server logs for more info"
-                                      }),
-                             400)
-    try:
         RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
                                        dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
-        BMAPIInstance = BackMarketClient(key=keys["BM"]["token"], itemKeyName="orderlines",
-                                         dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+        BMAPIInstance = BackMarketClient(key=keys["BM"]["token"])
 
         recordsUpdated = ordersdb_controller.performUpdateExistingOrdersUpdate(service=service,
-                                                                             BMAPIInstance=BMAPIInstance,
-                                                                             RFAPIInstance=RFAPIInstance)
-
+                                                                               BMAPIInstance=BMAPIInstance,
+                                                                               RFAPIInstance=RFAPIInstance)
         newRecordsAdded = ordersdb_controller.performAddNewOrdersUpdate(service=service,
-                                                                      BMAPIInstance=BMAPIInstance,
-                                                                      RFAPIInstance=RFAPIInstance)
+                                                                        BMAPIInstance=BMAPIInstance,
+                                                                        RFAPIInstance=RFAPIInstance,
+                                                                        days=numberOfDaysToUpdate)
 
         end = time.time()
 
@@ -68,6 +59,16 @@ def updateGoogleSheet():
     except IncorrectSheetTitleException as e:
         return make_response(jsonify({"type": "fail",
                                       "message": e.args[0]
+                                      }),
+                             400)
+    except IncorrectAuthTokenException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             401)
+    except HTTPExceptions.BadRequest as e:
+        return make_response(jsonify({"type": "Bad Request",
+                                      "message": "No JSON body in request"
                                       }),
                              400)
     except Exception:

@@ -4,7 +4,7 @@ import requests
 
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
-from get_order_history import keys
+from keys import keys
 
 
 class RefurbedClient(MarketPlaceClient):
