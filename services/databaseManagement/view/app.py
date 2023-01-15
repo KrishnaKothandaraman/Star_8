@@ -87,10 +87,10 @@ def swdAddOrder():
         if not key or key != keys["auth-token"]:
             raise IncorrectAuthTokenException("Incorrect auth token provided")
 
-        addorders_controller.performSWDAddOrder()
+        num_updated = addorders_controller.performSWDAddOrder()
 
         return make_response(jsonify({"type": "success",
-                                      "message": "Done"
+                                      "message": f"Updated {num_updated} new orders"
                                       }),
                              200)
 

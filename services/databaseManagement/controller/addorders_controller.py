@@ -120,10 +120,8 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
 
 
 def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
-    print(f"Creating order for {formattedOrder}")
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps(getSWDCreateOrderBody(formattedOrder, items))}
-    print(formData)
     createOrderResponse = requests.post(url="https://admin.shopwedo.com/api/createOrder", data=formData)
     return createOrderResponse
 
@@ -185,13 +183,14 @@ def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelNa
     return items
 
 
-def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
+def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
     """
     Performs logic to loop through orders and create SWD orders if stock exists
     :param orders: List of orders
     :param MarketClient: Marketplace that the orders are from
     :return:
     """
+    updateCounter = 0
     for order in orders:
         formattedOrder = MarketClient.convertOrderToSheetColumns(order)
         remoteCheckCode = performRemoteCheck(formattedOrder["shipping_country_code"],
@@ -201,11 +200,13 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
         stockExists, swdModelName, stockAmount = "", "", ""
         # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
         if float(formattedOrder["total_charged"]) < 800 and remoteCheckCode == 204 \
-                and len(formattedOrder["shipper"].split(" ")) == 1:
+                and len(formattedOrder["shipper"].split(" ")) == 1 and formattedOrder["shipping_country_code"] != "ES":
             formattedOrder["shipper"] = "ups"
         else:
             formattedOrder["shipper"] = "dhlexpress"
 
+        print(
+            f"For {formattedOrder['order_id']} to country {formattedOrder['shipping_country_code']}, set shipper to {formattedOrder['shipper']}")
         for orderline in orderItems:
             listing = MarketClient.getSku(orderline)
             stockExists, swdModelName, stockAmount = performSWDStockCheck(listing)
@@ -231,16 +232,18 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient):
             else:
                 errors = 0
                 for orderline in orderItems:
-                    sku = MarketClient.getSku(orderline)
-                    resp = MarketClient.updateOrderStateByOrderID(str(formattedOrder["order_id"]), 2, sku)
+                    sku: str = MarketClient.getSku(orderline)
+                    resp = MarketClient.updateOrderStateByOrderID(str(formattedOrder["order_id"]), sku, 2)
                     if resp.status_code != 200:
-                        print(f"ERROR for {formattedOrder['order_id']}{sku}. "
+                        print(f"ERROR for {formattedOrder['order_id']} {sku}. "
                               f"Manully check in. Updated Failed: Code: {resp.status_code}, Resp: {resp.json()}")
                         errors += 1
                     else:
-                        print(f"Updated state of {formattedOrder['order_id']} to {3}. Return code {resp.status_code}")
+                        updateCounter += 1
+                        print(f"Updated state of {formattedOrder['order_id']} to {2}. Return code {resp.status_code}")
                 if errors:
                     raise GenericAPIException
+    return updateCounter
 
 def performSWDAddOrder():
     """Call this method to run the workflow to pull new orders and add orders to SWD"""
@@ -248,6 +251,6 @@ def performSWDAddOrder():
 
     newOrders = bmClient.getOrdersByState(state=1)
 
-    processNewOrders(newOrders, bmClient)
+    return processNewOrders(newOrders, bmClient)
 
 # performSWDAddOrder()
