@@ -22,104 +22,13 @@ class RefurbedClient(MarketPlaceClient):
         self.skuFieldName = RFtypes.RFSKUFieldName
         self.orderIDFieldName = RFtypes.RFOrderIDFieldName
 
-    def __getAuthHeader(self):
-        return {"Authorization": self.key}
-
-    def __crawlURL(self, url, payload):
-        orders = []
-        while True:
-            print(f"Making Request")
-
-            resp = requests.post(url=url,
-                                 headers=self.__getAuthHeader(), data=json.dumps(payload))
-            if resp.status_code != 200:
-                print(f"Error occured {resp.status_code}")
-                raise GenericAPIException(resp.reason)
-
-            resp_json = resp.json()
-            orders += resp_json["orders"]
-            if resp_json["has_more"]:
-                starting_after = resp_json['orders'][-1]['id']
-                payload["pagination"] = {"starting_after": str(starting_after)}
-            else:
-                break
-
-        return orders
-
-    def getOrdersBetweenDates(self, start: datetime.datetime, end: datetime.datetime):
-        """
-        :param start: ISO 8601 format date string
-        :param end: ISO 8601 format date string
-        :return: response
-        """
-        start = self.convertDateTimeToString(start, "T00:00:00.00000Z")
-        end = self.convertDateTimeToString(end, "T23:59:59.9999Z")
-
-        print(start, end)
-        print(f"INFO: Sending request to RF")
-        payload = {
-            "filter": {
-                "released_at": {
-                    "ge": start,
-                    "le": end
-                }
-            },
-        }
-        orders = self.__crawlURL(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
-                                 payload=payload)
-
-        print(f"Refurbed {len(orders)}")
-        return orders
-
-    def getOrderByID(self, orderID):
-        print(f"INFO: Sending request to RF")
-
-        resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
-                             headers=self.__getAuthHeader(), data=json.dumps({"id": str(orderID)}))
-
-        if resp.status_code != 200:
-            raise GenericAPIException(resp.reason)
-
-        return resp.json()
-
-    def getOrdersByState(self, state: RFtypes.OrderStates):
-
-        print(f"INFO: Sending request to BM for {state=}")
-        url = f"https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders"
-        payload = {
-            "filter": {
-                "state": {
-                    "any_of": [
-                        state
-                    ]
-                }
-            }
-        }
-
-        return self.__crawlURL(url=url, payload=payload)
-
-    def updateOrderStateByOrderID(self, orderID: str, sku: str, newState: int) -> requests.Response:
-
-        print(f"RF: Updating state of {orderID} and sku {sku}")
-        url = f"https://api.refurbed.com/refb.merchant.v1.OrderItemService/UpdateOrderItemState"
-        body = {
-            "order_id": int(orderID),
-            "new_state": newState,
-            "sku": sku
-        }
-        print(f"Sending {body=}")
-        resp = requests.post(url=url,
-                             headers=self.__getAuthHeader(),
-                             data=body)
-        return resp
-
     @staticmethod
     def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
         items = []
         for orderItem in orderItems:
-            listing = orderItem["listing"]
-            quantity = orderItem["quantity"]
-            price = orderItem["price"]
+            listing = orderItem["sku"]
+            quantity = 1
+            price = orderItem["settlement_total_charged"]
             productItem = {
                 "skuType": "reference",
                 "sku": listing,
@@ -188,7 +97,121 @@ class RefurbedClient(MarketPlaceClient):
                 items += adapterItem
         return items
 
+    def __getAuthHeader(self):
+        return {"Authorization": self.key}
+
+    def __crawlURL(self, url, payload):
+        orders = []
+        while True:
+            print(f"Making Request")
+
+            resp = requests.post(url=url,
+                                 headers=self.__getAuthHeader(), data=json.dumps(payload))
+            if resp.status_code != 200:
+                print(f"Error occured {resp.status_code}")
+                raise GenericAPIException(resp.reason)
+
+            resp_json = resp.json()
+            orders += resp_json["orders"]
+            if resp_json["has_more"]:
+                starting_after = resp_json['orders'][-1]['id']
+                payload["pagination"] = {"starting_after": str(starting_after)}
+            else:
+                break
+
+        return orders
+
+    def getOrdersBetweenDates(self, start: datetime.datetime, end: datetime.datetime):
+        """
+        :param start: ISO 8601 format date string
+        :param end: ISO 8601 format date string
+        :return: response
+        """
+        start = self.convertDateTimeToString(start, "T00:00:00.00000Z")
+        end = self.convertDateTimeToString(end, "T23:59:59.9999Z")
+
+        print(start, end)
+        print(f"INFO: Sending request to RF")
+        payload = {
+            "filter": {
+                "released_at": {
+                    "ge": start,
+                    "le": end
+                }
+            },
+        }
+        orders = self.__crawlURL(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
+                                 payload=payload)
+
+        print(f"Refurbed: {len(orders)}")
+        return orders
+
+    def getOrderByID(self, orderID):
+        print(f"INFO: Sending request to RF")
+
+        resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
+                             headers=self.__getAuthHeader(), data=json.dumps({"id": str(orderID)}))
+
+        if resp.status_code != 200:
+            raise GenericAPIException(resp.reason)
+
+        return resp.json()
+
+    def getOrdersByState(self, state: RFtypes.OrderStates):
+
+        print(f"INFO: Sending request to RF for {state=}")
+        url = f"https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders"
+        payload = {
+            "filter": {
+                "state": {
+                    "any_of": [
+                        state
+                    ]
+                }
+            }
+        }
+
+        orders = self.__crawlURL(url=url, payload=payload)
+
+        print(f"Refurbed: {len(orders)}")
+
+        return orders
+
+    def updateStateOfOrder(self, order):
+        errors = 0
+        updateCounter = 0
+        for orderline in order[self.itemKeyName]:
+            order_id = str(self.getOrderID(order))
+            item_id = orderline["id"]
+            resp = self.MakeUpdateOrderStateByOrderIDRequest(order_id, item_id, "ACCEPTED")
+
+            if resp.status_code != 200:
+                print(f"ERROR for {order_id} {item_id}. "
+                      f"Manully check in. Updated Failed: Code: {resp.status_code}, Reason: {resp.reason}")
+                errors += 1
+            else:
+                updateCounter += 1
+                print(f"Updated state of {order_id} to {2}. Return code {resp.status_code}")
+
+        if errors:
+            raise GenericAPIException(f"Update state to RF had errors")
+
+        return updateCounter
+
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, item_id: str, newState: RFtypes.OrderStates) -> requests.Response:
+
+        print(f"RF: Updating state of {orderID} and item_id {item_id}")
+        url = f"https://api.refurbed.com/refb.merchant.v1.OrderItemService/UpdateOrderItemState"
+        body = {
+                "id": item_id,
+                "state": newState
+            }
+        print(f"Sending {body=}")
+        resp = requests.post(url=url,
+                             headers=self.__getAuthHeader(),
+                             data=json.dumps(body))
+        return resp
 
 
 # rf = RefurbedClient(key=keys["RF"]["token"])
-# print(rf.getOrdersByState("ACCEPTED")[0])
+# print(rf.updateStateOfOrder(rf.getOrdersByState("NEW")[0]))

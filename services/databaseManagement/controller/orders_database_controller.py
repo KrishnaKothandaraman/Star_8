@@ -1,8 +1,11 @@
 import datetime
 import time
 import traceback
+from typing import List
+
 from core.google_services.googleSheetsService import GoogleSheetsService
 from core.marketplace_clients.bmclient import BackMarketClient
+from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
 from keys import keys
 
@@ -36,12 +39,11 @@ def performAddNewOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackM
 
     for order in RFNewOrders:
         if str(order["id"]) not in googleSheetOrderIDs:
-            ordersToBeAdded["Refurbed"].append(RFAPIInstance.convertOrderToSheetColumns(order))
+            ordersToBeAdded["Refurbed"] += RFAPIInstance.convertOrderToSheetColumns(order)
 
     for order in BMnewOrders:
         if str(order["order_id"]) not in googleSheetOrderIDs:
-            print(f"Didn't find {order['order_id']} so adding it")
-            ordersToBeAdded["BackMarket"].append(BMAPIInstance.convertOrderToSheetColumns(order))
+            ordersToBeAdded["BackMarket"] += BMAPIInstance.convertOrderToSheetColumns(order)
 
     """
     Step 1 is to flatten everything except the orderlines
@@ -85,18 +87,26 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
     }
 
     for order in RFNewOrders:
+        formattedOrderList = RFAPIInstance.convertOrderToSheetColumns(order)
         for item in order["items"]:
             primaryKey = f"{order['id']}_{item['id']}"
-            if primaryKey in googleSheetIDS:
-                ordersToBeUpdated["Refurbed"].append({"data": RFAPIInstance.convertOrderToSheetColumns(order),
-                                                      "row": googleSheetIDS[primaryKey]})
+            if primaryKey not in googleSheetIDS:
+                continue
+            for formattedOrder in formattedOrderList:
+                if f"{formattedOrder['order_id']}_{formattedOrder['item_id']}" == primaryKey:
+                    ordersToBeUpdated["Refurbed"].append({"data": formattedOrder,
+                                                          "row": googleSheetIDS[primaryKey]})
 
     for order in BMnewOrders:
+        formattedOrderList = BMAPIInstance.convertOrderToSheetColumns(order)
         for item in order["orderlines"]:
             primaryKey = f"{order['order_id']}_{item['id']}"
-            if primaryKey in googleSheetIDS:
-                ordersToBeUpdated["BackMarket"].append({"data": BMAPIInstance.convertOrderToSheetColumns(order),
-                                                        "row": googleSheetIDS[primaryKey]})
+            if primaryKey not in googleSheetIDS:
+                continue
+            for formattedOrder in formattedOrderList:
+                if f"{formattedOrder['order_id']}_{formattedOrder['item_id']}" == primaryKey:
+                    ordersToBeUpdated["Refurbed"].append({"data": formattedOrder,
+                                                          "row": googleSheetIDS[primaryKey]})
 
     # contains flattened order list to upload to sheets
     flattenedOrderList = []

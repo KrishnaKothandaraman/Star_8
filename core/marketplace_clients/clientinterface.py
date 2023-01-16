@@ -47,7 +47,7 @@ class MarketPlaceClient:
                 # global column in item array
                 if level == "..":
                     continue
-                val = val.get(level, "-")
+                val = val.get(level, "")
 
         if val is None:
             val = ""
@@ -62,9 +62,10 @@ class MarketPlaceClient:
     def convertBetweenDateTimeStringFormats(inputString: str, inputFormat: str, outputFormat: str) -> str:
         return datetime.datetime.strptime(inputString, inputFormat).strftime(outputFormat)
 
-    def convertOrderToSheetColumns(self, order: dict):
-        formattedOrder = {}
+    def convertOrderToSheetColumns(self, order: dict) -> List[dict]:
+        formattedOrders = []
         for i, _ in enumerate(order[self.itemKeyName]):
+            formattedOrder = {}
             for col, mapping in columnMapping["global"].items():
                 formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor], order)
                 if mapping[self.vendor] == self.dateFieldName:
@@ -82,7 +83,9 @@ class MarketPlaceClient:
                 if self.vendor == "Refurbed" and col == "shipper":
                     formattedOrder[col] = RFTypes.ShippingProfileIDMapping[str(formattedOrder[col])]
 
-        return formattedOrder
+            formattedOrders.append(formattedOrder)
+
+        return formattedOrders
 
     def getOrderItems(self, order):
         return order[self.itemKeyName]
@@ -93,7 +96,10 @@ class MarketPlaceClient:
     def getOrderID(self, order):
         return order[self.orderIDFieldName]
 
-    def updateOrderStateByOrderID(self, orderID, sku, newState):
+    def updateStateOfOrder(self, order):
+        raise NotImplementedError
+
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, identifier, newState):
         raise NotImplementedError
 
     @staticmethod

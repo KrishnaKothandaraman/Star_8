@@ -127,6 +127,14 @@ def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
     return createOrderResponse
 
 
+def getShipperName(price: float, chosenShipperName: str, country_code: str, remoteCheckCode):
+    # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
+    if price < 800 and remoteCheckCode == 204 and len(chosenShipperName.split(" ")) == 1 and country_code != "ES":
+        return "ups"
+    else:
+        return "dhlexpress"
+
+
 def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
     """
     Performs logic to loop through orders and create SWD orders if stock exists
@@ -136,21 +144,19 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
     """
     updateCounter = 0
     for order in orders:
-        formattedOrder = MarketClient.convertOrderToSheetColumns(order)
-        remoteCheckCode = performRemoteCheck(formattedOrder["shipping_country_code"],
-                                             formattedOrder["shipping_postal_code"],
-                                             formattedOrder["shipper"].split(" ")[0])
-        orderItems = MarketClient.getOrderItems(order)
+        formattedOrder = MarketClient.convertOrderToSheetColumns(order)[0]
+        remoteCheckCode = performRemoteCheck(country=formattedOrder["shipping_country_code"],
+                                             postal_code=formattedOrder["shipping_postal_code"],
+                                             shipper=formattedOrder["shipper"].split(" ")[0])
         stockExists, swdModelName, stockAmount = "", "", ""
-        # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
-        if float(formattedOrder["total_charged"]) < 800 and remoteCheckCode == 204 \
-                and len(formattedOrder["shipper"].split(" ")) == 1 and formattedOrder["shipping_country_code"] != "ES":
-            formattedOrder["shipper"] = "ups"
-        else:
-            formattedOrder["shipper"] = "dhlexpress"
 
+        formattedOrder["shipper"] = getShipperName(price=float(formattedOrder["total_charged"]),
+                                                   chosenShipperName=formattedOrder["shipper"],
+                                                   country_code=formattedOrder["shipping_country_code"],
+                                                   remoteCheckCode=remoteCheckCode)
         print(
             f"For {formattedOrder['order_id']} to country {formattedOrder['shipping_country_code']}, set shipper to {formattedOrder['shipper']}")
+        orderItems = MarketClient.getOrderItems(order)
         for orderline in orderItems:
             listing = MarketClient.getSku(orderline)
             stockExists, swdModelName, stockAmount = performSWDStockCheck(listing)
@@ -165,8 +171,8 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
         # else here means the orderline loop was excited normally. No break
         else:
             print(f"All stock exists for order {swdModelName}")
-            items = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
-            createOrderResp = performSWDCreateOrder(formattedOrder, items)
+            SWDItemsBody = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
+            createOrderResp = performSWDCreateOrder(formattedOrder, SWDItemsBody)
             if createOrderResp.status_code != 201:
                 print(f"Created order failed due to {createOrderResp.reason}")
                 updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
@@ -175,19 +181,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
                                               }]
                                        )
             else:
-                errors = 0
-                for orderline in orderItems:
-                    sku: str = MarketClient.getSku(orderline)
-                    resp = MarketClient.updateOrderStateByOrderID(str(formattedOrder["order_id"]), sku, 2)
-                    if resp.status_code != 200:
-                        print(f"ERROR for {formattedOrder['order_id']} {sku}. "
-                              f"Manully check in. Updated Failed: Code: {resp.status_code}, Resp: {resp.json()}")
-                        errors += 1
-                    else:
-                        updateCounter += 1
-                        print(f"Updated state of {formattedOrder['order_id']} to {2}. Return code {resp.status_code}")
-                if errors:
-                    raise GenericAPIException
+                updateCounter += MarketClient.updateStateOfOrder(order)
     return updateCounter
 
 
@@ -196,9 +190,14 @@ def performSWDAddOrder():
     BMClient = BackMarketClient(key=keys["BM"]["token"])
     RFClient = RefurbedClient(key=keys["RF"]["token"])
 
-    BMNewOrders = BMClient.getOrdersByState(state=1)
-    RFNewOrders = RFClient.getOrdersByState(state="NEW")
+    numNewOrders = 0
 
-    return processNewOrders(BMNewOrders, BMClient)
+    BMNewOrders = BMClient.getOrdersByState(state=1)
+    numNewOrders += processNewOrders(BMNewOrders, BMClient)
+
+    RFNewOrders = RFClient.getOrdersByState(state="NEW")
+    numNewOrders += processNewOrders(RFNewOrders, RFClient)
+
+    return numNewOrders
 
 # performSWDAddOrder()

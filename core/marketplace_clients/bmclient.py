@@ -18,6 +18,71 @@ class BackMarketClient(MarketPlaceClient):
         self.skuFieldName = BMTypes.BMSKUFieldName
         self.orderIDFieldName = BMTypes.BMOrderIDFieldName
 
+    @staticmethod
+    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+        items = []
+        for orderItem in orderItems:
+            listing = orderItem["listing"]
+            quantity = orderItem["quantity"]
+            price = orderItem["price"]
+            productItem = {
+                "skuType": "reference",
+                "sku": listing,
+                "amount": quantity,
+                "price": price
+            }
+            adapterItem = [{
+                "skuType": "reference",
+                "sku": "002204",
+                "amount": quantity,
+                "price": 2
+            }]
+            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002479",
+                    "amount": quantity,
+                    "price": 2
+                }]
+            elif "EUS" in swdModelName and "iPad 7" in swdModelName:
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002351",
+                    "amount": quantity,
+                    "price": 2
+                }]
+            elif "EUS" in swdModelName and any(
+                    substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002478",
+                    "amount": quantity,
+                    "price": 2
+                }]
+            elif "EUS" in swdModelName and any(
+                    substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
+                adapterItem = [
+                    {
+                        "skuType": "reference",
+                        "sku": "002331",
+                        "amount": quantity,
+                        "price": 2
+                    },
+                    {
+                        "skuType": "barcode",
+                        "sku": "SKU_136666",
+                        "amount": quantity,
+                        "price": 2
+                    }
+                ]
+            elif "EUS" not in swdModelName:
+                adapterItem = None
+
+            items.append(productItem)
+            if adapterItem:
+                items += adapterItem
+        return items
+
     def __getAuthHeader(self):
         return {"Authorization": f"Basic {self.key}"}
 
@@ -90,7 +155,28 @@ class BackMarketClient(MarketPlaceClient):
 
         return self.__crawlURL(url=url, endDate=None)
 
-    def updateOrderStateByOrderID(self, orderID: str, sku: str, newState: int) -> requests.Response:
+    def updateStateOfOrder(self, order):
+
+        errors = 0
+        updateCounter = 0
+        for orderline in order[self.itemKeyName]:
+            sku: str = self.getSku(orderline)
+            order_id = self.getOrderID(order)
+            resp = self.MakeUpdateOrderStateByOrderIDRequest(str(order_id), sku, 2)
+            if resp.status_code != 200:
+                print(f"ERROR for {order_id} {sku}. "
+                      f"Manully check in. Updated Failed: Code: {resp.status_code}, Resp: {resp.json()}")
+                errors += 1
+            else:
+                updateCounter += 1
+                print(f"Updated state of {order_id} to {2}. Return code {resp.status_code}")
+
+        if errors:
+            raise GenericAPIException(f"Update state to BM had errors")
+
+        return updateCounter
+
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID: str, sku: str, newState: int) -> requests.Response:
 
         print(f"BM: Updating state of {orderID} and sku {sku}")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
@@ -104,71 +190,6 @@ class BackMarketClient(MarketPlaceClient):
                              headers=self.__getAuthHeader(),
                              data=body)
         return resp
-
-    @staticmethod
-    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
-        items = []
-        for orderItem in orderItems:
-            listing = orderItem["listing"]
-            quantity = orderItem["quantity"]
-            price = orderItem["price"]
-            productItem = {
-                "skuType": "reference",
-                "sku": listing,
-                "amount": quantity,
-                "price": price
-            }
-            adapterItem = [{
-                "skuType": "reference",
-                "sku": "002204",
-                "amount": quantity,
-                "price": 2
-            }]
-            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
-                adapterItem = [{
-                    "skuType": "reference",
-                    "sku": "002479",
-                    "amount": quantity,
-                    "price": 2
-                }]
-            elif "EUS" in swdModelName and "iPad 7" in swdModelName:
-                adapterItem = [{
-                    "skuType": "reference",
-                    "sku": "002351",
-                    "amount": quantity,
-                    "price": 2
-                }]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
-                adapterItem = [{
-                    "skuType": "reference",
-                    "sku": "002478",
-                    "amount": quantity,
-                    "price": 2
-                }]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
-                adapterItem = [
-                    {
-                        "skuType": "reference",
-                        "sku": "002331",
-                        "amount": quantity,
-                        "price": 2
-                    },
-                    {
-                        "skuType": "barcode",
-                        "sku": "SKU_136666",
-                        "amount": quantity,
-                        "price": 2
-                    }
-                ]
-            elif "EUS" not in swdModelName:
-                adapterItem = None
-    
-            items.append(productItem)
-            if adapterItem:
-                items += adapterItem
-        return items
 
 
 # if __name__ == "__main__":

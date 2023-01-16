@@ -3,8 +3,8 @@ from typing import Literal, Dict
 RFItemKeyName = "items"
 RFDateFieldName = "released_at"
 RFDateStringFormat = "%Y-%m-%dT%H:%M:%S.%fZ"
-RFSKUFieldName = "listing"
-RFOrderIDFieldName = "order_id"
+RFSKUFieldName = "sku"
+RFOrderIDFieldName = "id"
 
 OrderStates = Literal["NEW", "REJECTED", "CANCELLED", "ACCEPTED", "SHIPPED", "RETURNED"]
 
