@@ -5,12 +5,16 @@ import core.types.backmarketAPI as BMTypes
 from pandas import to_datetime as to_datetime
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
+import os
+
+BM_KEY = os.environ["bm-token"]
 
 
 class BackMarketClient(MarketPlaceClient):
 
-    def __init__(self, key: str):
-        super().__init__(key)
+    def __init__(self):
+        super().__init__()
+        self.key = BM_KEY
         self.vendor = "BackMarket"
         self.dateFieldName = BMTypes.BMDateFieldName
         self.dateStringFormat = BMTypes.BMDateStringFormat
@@ -190,7 +194,6 @@ class BackMarketClient(MarketPlaceClient):
                              headers=self.__getAuthHeader(),
                              data=body)
         return resp
-
 
 # if __name__ == "__main__":
 #     bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4")

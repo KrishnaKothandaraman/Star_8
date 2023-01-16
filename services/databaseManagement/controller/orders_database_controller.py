@@ -7,7 +7,6 @@ from core.google_services.googleSheetsService import GoogleSheetsService
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
-from keys import keys
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
@@ -138,8 +137,8 @@ def updateGoogleSheetNonApi():
                                                       column="A")
     googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
-    RFAPIInstance = RefurbedClient(key=keys["RF"]["token"])
-    BMAPIInstance = BackMarketClient(key=keys["BM"]["token"])
+    RFAPIInstance = RefurbedClient()
+    BMAPIInstance = BackMarketClient()
 
     offset = 20
     startOffset = 20

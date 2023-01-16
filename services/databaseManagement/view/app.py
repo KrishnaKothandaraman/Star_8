@@ -1,3 +1,13 @@
+import os
+os.environ["auth-token"] = "12345"
+os.environ["remote-check-api-key"] = "hu685pkl-0lr1-7jx5-r3be-yzxjaqnrzfm9"
+os.environ["appsheet-accesskey"] = "V2-mwTj5-nvH7J-6sv08-6yfrG-OSs2H-jQEOe-sWbY9-mZ5ha"
+os.environ["rf-token"] = "Plain e01e77cd-899f-4964-a44f-ec603ab62d17"
+os.environ["bm-token"] = "YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4"
+os.environ["swd-shopkey"] = "9q7qDKnCX+XHtdAka96OTm3SEfyW/0gw/5HYQJClmtBet4grGl1/W5xuGxmuSGM2B/R5OADgmn+z" \
+                            "+4GnkBtRapMqxRaOcpfqpMeLPDO4qGAlNmVCzXyFNbYHPA4ORmRHBo5pnRKmVtamFPjJh3BLdaSsYCD6IxckVJb8f6N10Kc= "
+os.environ["swd-shopid"] = "11025"
+
 from core.custom_exceptions.general_exceptions import IncorrectAuthTokenException
 from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitleException
 import time
@@ -11,11 +21,15 @@ import services.databaseManagement.controller.orders_database_controller as orde
 import services.databaseManagement.controller.addorders_controller as addorders_controller
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.rfclient import RefurbedClient
-from keys import keys
 
 app = Flask(__name__)
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+
+APP_AUTH_TOKEN = os.environ["auth-token"]
+
+def create_api_app():
+    return app
 
 
 @app.route('/update-googlesheet', methods=['POST'])
@@ -26,13 +40,13 @@ def updateGoogleSheet():
         body = request.get_json()
         numberOfDaysToUpdate = body["days"] if "days" in body else 0
 
-        if not key or key != keys["auth-token"]:
+        if not key or key != APP_AUTH_TOKEN:
             raise IncorrectAuthTokenException("Incorrect auth token provided")
 
         start = time.time()
         service = GoogleSheetsService()
-        RFAPIInstance = RefurbedClient(key=keys["RF"]["token"])
-        BMAPIInstance = BackMarketClient(key=keys["BM"]["token"])
+        RFAPIInstance = RefurbedClient()
+        BMAPIInstance = BackMarketClient()
 
         recordsUpdated = ordersdb_controller.performUpdateExistingOrdersUpdate(service=service,
                                                                                BMAPIInstance=BMAPIInstance,
@@ -83,7 +97,7 @@ def swdAddOrder():
     try:
         key = request.headers.get('auth-token')
 
-        if not key or key != keys["auth-token"]:
+        if not key or key != APP_AUTH_TOKEN:
             raise IncorrectAuthTokenException("Incorrect auth token provided")
 
         num_updated = addorders_controller.performSWDAddOrder()

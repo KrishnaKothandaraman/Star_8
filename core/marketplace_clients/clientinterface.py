@@ -13,8 +13,8 @@ class MarketPlaceClient:
     skuFieldName: str
     orderIDFieldName: str
 
-    def __init__(self, key):
-        self.key = key
+    def __init__(self):
+        self.key = ""
         self.vendor = ""
         self.dateFieldName = ""
         self.dateStringFormat = ""

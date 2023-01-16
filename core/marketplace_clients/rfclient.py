@@ -1,20 +1,23 @@
 import datetime
 import json
+import os
 from typing import Optional, List
 
 import requests
 import core.types.refurbedAPI as RFtypes
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
-from keys import keys
+
+RF_ACCESS_KEY = os.environ["rf-token"]
 
 
 class RefurbedClient(MarketPlaceClient):
     key: str
     vendor: str
 
-    def __init__(self, key: str):
-        super().__init__(key)
+    def __init__(self):
+        super().__init__()
+        self.key = RF_ACCESS_KEY
         self.vendor = "Refurbed"
         self.dateFieldName = RFtypes.RFDateFieldName
         self.dateStringFormat = RFtypes.RFDateStringFormat
@@ -198,20 +201,20 @@ class RefurbedClient(MarketPlaceClient):
 
         return updateCounter
 
-    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, item_id: str, newState: RFtypes.OrderStates) -> requests.Response:
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, item_id: str,
+                                             newState: RFtypes.OrderStates) -> requests.Response:
 
         print(f"RF: Updating state of {orderID} and item_id {item_id}")
         url = f"https://api.refurbed.com/refb.merchant.v1.OrderItemService/UpdateOrderItemState"
         body = {
-                "id": item_id,
-                "state": newState
-            }
+            "id": item_id,
+            "state": newState
+        }
         print(f"Sending {body=}")
         resp = requests.post(url=url,
                              headers=self.__getAuthHeader(),
                              data=json.dumps(body))
         return resp
-
 
 # rf = RefurbedClient(key=keys["RF"]["token"])
 # print(rf.updateStateOfOrder(rf.getOrdersByState("NEW")[0]))
