@@ -1,67 +1,10 @@
 import datetime
-import enum
-import json
-from typing import Optional
-
+from typing import Optional, List
 import requests
+import core.types.backmarketAPI as BMTypes
 from pandas import to_datetime as to_datetime
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
-
-
-class BackMarketOrderStates(enum.Enum):
-    New: 0
-    Pending_Payment: 10
-    Accept: 1
-    Pending_Shipment: 3
-    Payment_Failed: 8
-    Shipped: 9
-
-    @staticmethod
-    def getStrFromEnum(val):
-        return {
-            0: "NEW", 10: "PENDING PAYMENT", 1: "ACCEPTED", 3: "PENDING SHIPMENT", 8: "PAYMENT FAILED", 9: "SHIPPED"
-        }[val]
-
-
-class BackMarketGender(enum.Enum):
-    Male: 0
-    Female: 1
-
-    @staticmethod
-    def getStrFromEnum(val):
-        return {
-            0: "MALE", 1: "FEMALE"}[val]
-
-
-class BackMarketOrderlinesStates(enum.Enum):
-    New: 0
-    Validate_Orderline: 1
-    Order_Accepted: 2
-    Shipped: 3
-    Cancelled: 4
-    Refund_Before_Shipping: 5
-    Refund_After_Shipping: 6
-    Payment_Failed: 7
-    Awaiting_Payment: 8
-
-    @staticmethod
-    def getStrFromEnum(val):
-        return {
-            0: "NEW", 1: "VALIDATE ORDERLINE", 2: "ORDER ACCEPTED", 3: "SHIPPED", 4: "CANCELLED",
-            5: "REFUND BEFORE SHIPPING", 6: "REFUND AFTER SHIPPING", 7: "PAYMENT FAILED", 8: "AWAITING PAYMENT"
-        }[val]
-
-
-#############
-# Constants #
-#############
-
-BMDateStringFormat = "%Y-%m-%dT%H:%M:%S%z"
-BMDateFieldName = "date_creation"
-BMItemKeyName = "orderlines"
-BMSKUFieldName = "listing"
-BMOrderIDFieldName = "order_id"
 
 
 class BackMarketClient(MarketPlaceClient):
@@ -69,22 +12,22 @@ class BackMarketClient(MarketPlaceClient):
     def __init__(self, key: str):
         super().__init__(key)
         self.vendor = "BackMarket"
-        self.dateFieldName = BMDateFieldName
-        self.dateStringFormat = BMDateStringFormat
-        self.itemKeyName = BMItemKeyName
-        self.skuFieldName = BMSKUFieldName
-        self.orderIDFieldName = BMOrderIDFieldName
+        self.dateFieldName = BMTypes.BMDateFieldName
+        self.dateStringFormat = BMTypes.BMDateStringFormat
+        self.itemKeyName = BMTypes.BMItemKeyName
+        self.skuFieldName = BMTypes.BMSKUFieldName
+        self.orderIDFieldName = BMTypes.BMOrderIDFieldName
 
-    def getAuthHeader(self):
+    def __getAuthHeader(self):
         return {"Authorization": f"Basic {self.key}"}
 
-    def crawlURL(self, url, endDate: Optional[str]):
+    def __crawlURL(self, url, endDate: Optional[str]):
         data = []
         orderCounter = 0
         while url:
             print(f"Making call to {url}")
             resp = requests.get(url=url,
-                                headers=self.getAuthHeader())
+                                headers=self.__getAuthHeader())
             if resp.status_code != 200:
                 print(f"Error occured {resp.status_code}")
                 raise GenericAPIException(resp.reason)
@@ -93,13 +36,13 @@ class BackMarketClient(MarketPlaceClient):
             results = resp.json()["results"]
             orderCounter += len(results)
             for res in results:
-                res["state"] = BackMarketOrderStates.getStrFromEnum(val=int(res["state"]))
-                res["shipping_address"]["gender"] = BackMarketGender.getStrFromEnum(
+                res["state"] = BMTypes.BackMarketOrderStates.getStrFromEnum(val=int(res["state"]))
+                res["shipping_address"]["gender"] = BMTypes.BackMarketGender.getStrFromEnum(
                     val=int(res["shipping_address"]["gender"]))
-                res["billing_address"]["gender"] = BackMarketGender.getStrFromEnum(
+                res["billing_address"]["gender"] = BMTypes.BackMarketGender.getStrFromEnum(
                     val=int(res["billing_address"]["gender"]))
                 for order in res["orderlines"]:
-                    order["state"] = BackMarketOrderlinesStates.getStrFromEnum(val=int(order["state"]))
+                    order["state"] = BMTypes.BackMarketOrderlinesStates.getStrFromEnum(val=int(order["state"]))
 
             oldLen = len(data)
             if not endDate:
@@ -121,19 +64,19 @@ class BackMarketClient(MarketPlaceClient):
         start = self.convertDateTimeToString(start, " 00:00:00")
         end = self.convertDateTimeToString(end, " 23:59:59")
         print(f"Filtering between {start} {end}")
-        return self.crawlURL(url=f"https://www.backmarket.fr/ws/orders?date_creation={start}", endDate=end)
+        return self.__crawlURL(url=f"https://www.backmarket.fr/ws/orders?date_creation={start}", endDate=end)
 
     def getOrdersByLastModified(self, lastModifiedDate):
 
         start = self.convertDateTimeToString(lastModifiedDate, " 00:00:00")
         print(f"INFO: Sending request to BM")
-        return self.crawlURL(f"https://www.backmarket.fr/ws/orders?date_modification={start}", None)
+        return self.__crawlURL(f"https://www.backmarket.fr/ws/orders?date_modification={start}", None)
 
     def getOrderByID(self, orderID):
         print(f"INFO: Sending request to BM")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
 
-        resp = requests.get(url=url, headers=self.getAuthHeader())
+        resp = requests.get(url=url, headers=self.__getAuthHeader())
 
         if resp.status_code != 200:
             raise GenericAPIException(resp.reason)
@@ -145,7 +88,7 @@ class BackMarketClient(MarketPlaceClient):
         print(f"INFO: Sending request to BM for {state=}")
         url = f"https://www.backmarket.fr/ws/orders/?state={state}&page-size=50&page=1"
 
-        return self.crawlURL(url=url, endDate=None)
+        return self.__crawlURL(url=url, endDate=None)
 
     def updateOrderStateByOrderID(self, orderID: str, sku: str, newState: int) -> requests.Response:
 
@@ -158,19 +101,84 @@ class BackMarketClient(MarketPlaceClient):
         }
         print(f"Sending {body=}")
         resp = requests.post(url=url,
-                             headers=self.getAuthHeader(),
+                             headers=self.__getAuthHeader(),
                              data=body)
         return resp
+
+    @staticmethod
+    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+        items = []
+        for orderItem in orderItems:
+            listing = orderItem["listing"]
+            quantity = orderItem["quantity"]
+            price = orderItem["price"]
+            productItem = {
+                "skuType": "reference",
+                "sku": listing,
+                "amount": quantity,
+                "price": price
+            }
+            adapterItem = [{
+                "skuType": "reference",
+                "sku": "002204",
+                "amount": quantity,
+                "price": 2
+            }]
+            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002479",
+                    "amount": quantity,
+                    "price": 2
+                }]
+            elif "EUS" in swdModelName and "iPad 7" in swdModelName:
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002351",
+                    "amount": quantity,
+                    "price": 2
+                }]
+            elif "EUS" in swdModelName and any(
+                    substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002478",
+                    "amount": quantity,
+                    "price": 2
+                }]
+            elif "EUS" in swdModelName and any(
+                    substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
+                adapterItem = [
+                    {
+                        "skuType": "reference",
+                        "sku": "002331",
+                        "amount": quantity,
+                        "price": 2
+                    },
+                    {
+                        "skuType": "barcode",
+                        "sku": "SKU_136666",
+                        "amount": quantity,
+                        "price": 2
+                    }
+                ]
+            elif "EUS" not in swdModelName:
+                adapterItem = None
+    
+            items.append(productItem)
+            if adapterItem:
+                items += adapterItem
+        return items
 
 
 # if __name__ == "__main__":
 #     bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4")
-#     # with open("dump.json", "w") as f:
-#     #     f.write(
-#     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
-#
-#     # print(bm.getOrderByID("25923025"))
-#     resp = bm.updateOrderStateByOrderID(orderID="25923025", sku="002652SH", newState=2)
+# #     # with open("dump.json", "w") as f:
+# #     #     f.write(
+# #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
+# #
+# #     # print(bm.getOrderByID("25923025"))
+#     resp = bm.updateOrderStateByOrderID(orderID="25924512", sku="002029SH", newState=2)
 #     print(resp.status_code)
 #     print(resp.json())
 #     print(resp.reason)

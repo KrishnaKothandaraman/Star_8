@@ -1,6 +1,7 @@
 import datetime
 from typing import List
 from core.marketplace_clients.databaseutils.column_mapping import columnMapping
+import core.types.refurbedAPI as RFTypes
 
 
 class MarketPlaceClient:
@@ -43,6 +44,9 @@ class MarketPlaceClient:
                     joinedVal += str(val.get(col))
                 val = joinedVal
             else:
+                # global column in item array
+                if level == "..":
+                    continue
                 val = val.get(level, "-")
 
         if val is None:
@@ -64,10 +68,20 @@ class MarketPlaceClient:
             for col, mapping in columnMapping["global"].items():
                 formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor], order)
                 if mapping[self.vendor] == self.dateFieldName:
-                    formattedOrder[col] = self.convertBetweenDateTimeStringFormats(formattedOrder[col], self.dateStringFormat, "%Y-%m-%d %H:%M:%S")
+                    formattedOrder[col] = self.convertBetweenDateTimeStringFormats(formattedOrder[col],
+                                                                                   self.dateStringFormat,
+                                                                                   "%Y-%m-%d %H:%M:%S")
             for col, mapping in columnMapping["items"].items():
-                formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor],
-                                                                     order[self.itemKeyName][i])
+
+                if self.__checkIfGlobalMappingInItemMapping(mapping[self.vendor]):
+                    formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor],
+                                                                         order)
+                else:
+                    formattedOrder[col] = self.getValueFromColumnMapping(mapping[self.vendor],
+                                                                         order[self.itemKeyName][i])
+                if self.vendor == "Refurbed" and col == "shipper":
+                    formattedOrder[col] = RFTypes.ShippingProfileIDMapping[str(formattedOrder[col])]
+
         return formattedOrder
 
     def getOrderItems(self, order):
@@ -81,3 +95,11 @@ class MarketPlaceClient:
 
     def updateOrderStateByOrderID(self, orderID, sku, newState):
         raise NotImplementedError
+
+    @staticmethod
+    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+        raise NotImplementedError
+
+    @staticmethod
+    def __checkIfGlobalMappingInItemMapping(mapping: str):
+        return mapping and len(mapping) > 2 and mapping[:3] == "../"

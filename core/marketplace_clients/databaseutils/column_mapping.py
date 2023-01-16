@@ -7,6 +7,8 @@ NOTATIONS:
 <val>: This denotes a constant value. If the parser encounters this format, it will use the value within <> as a constant
 / : The forward slash operator denotes a key from a nester json object. Cannot be used in conjunction with +
 + : The plus operator denotes joining of multiple column values. THIS ONLY WORKS IF THE JOINED COLUMNS ARE THE LAST IN
+../ : Some per item fields may actually be global. In that case, prefix the mapping with this symbol to get from global
+    fields in order json
 THE HIERARCHY of / operators.
 """
 columnMapping = {
@@ -15,7 +17,7 @@ columnMapping = {
             "BackMarket": "order_id",
             "Refurbed": "id",
         },
-        "Market":{
+        "Market": {
             "BackMarket": "<BackMarket>",
             "Refurbed": "<Refurbed>"
         },
@@ -155,10 +157,6 @@ columnMapping = {
             "BackMarket": None,
             "Refurbed": "has_invoicable",
         },
-        "shipper": {
-            "BackMarket": "shipper",
-            "Refurbed": None
-        },
         "tracking_url": {
             "BackMarket": "tracking_url",
             "Refurbed": "parcel_tracking_url"
@@ -200,6 +198,10 @@ columnMapping = {
         "sku": {
             "BackMarket": "listing",
             "Refurbed": "sku"
+        },
+        "shipper": {
+            "BackMarket": "../shipper",
+            "Refurbed": "offer_data/shipping_profile_id"
         },
         "item_price": {
             "BackMarket": "price",

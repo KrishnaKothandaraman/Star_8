@@ -9,6 +9,7 @@ from typing import Tuple, List
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
+from core.marketplace_clients.rfclient import RefurbedClient
 from keys import keys
 
 
@@ -126,63 +127,6 @@ def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
     return createOrderResponse
 
 
-def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
-    items = []
-    for orderItem in orderItems:
-        listing = orderItem["listing"]
-        quantity = orderItem["quantity"]
-        price = orderItem["price"]
-        productItem = {
-            "skuType": "reference",
-            "sku": listing,
-            "amount": quantity,
-            "price": price
-        }
-        adapterItem = {
-            "skuType": "reference",
-            "sku": "002204",
-            "amount": quantity,
-            "price": 2
-        }
-        if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
-            adapterItem = {
-                "skuType": "reference",
-                "sku": "002479",
-                "amount": quantity,
-                "price": 2
-            }
-        elif "EUS" in swdModelName and "iPad 7" in swdModelName:
-            adapterItem = {
-                "skuType": "reference",
-                "sku": "002351",
-                "amount": quantity,
-                "price": 2
-            }
-        elif "EUS" in swdModelName and any(
-                substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
-            adapterItem = {
-                "skuType": "reference",
-                "sku": "002478",
-                "amount": quantity,
-                "price": 2
-            }
-        elif "EUS" in swdModelName and any(
-                substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
-            adapterItem = {
-                "skuType": "reference",
-                "sku": "002331",
-                "amount": quantity,
-                "price": 2
-            }
-        elif "EUS" not in swdModelName:
-            adapterItem = None
-
-        items.append(productItem)
-        if adapterItem:
-            items.append(adapterItem)
-    return items
-
-
 def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
     """
     Performs logic to loop through orders and create SWD orders if stock exists
@@ -221,12 +165,13 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
         # else here means the orderline loop was excited normally. No break
         else:
             print(f"All stock exists for order {swdModelName}")
-            items = generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
+            items = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
             createOrderResp = performSWDCreateOrder(formattedOrder, items)
             if createOrderResp.status_code != 201:
+                print(f"Created order failed due to {createOrderResp.reason}")
                 updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
                                               "Note": f"Shop we do add order failed. Error code: {createOrderResp.status_code}"
-                                                      f",Error json {createOrderResp.json()}"
+                                                      f",Error json {createOrderResp.reason}"
                                               }]
                                        )
             else:
@@ -245,12 +190,15 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
                     raise GenericAPIException
     return updateCounter
 
+
 def performSWDAddOrder():
     """Call this method to run the workflow to pull new orders and add orders to SWD"""
-    bmClient = BackMarketClient(key=keys["BM"]["token"])
+    BMClient = BackMarketClient(key=keys["BM"]["token"])
+    RFClient = RefurbedClient(key=keys["RF"]["token"])
 
-    newOrders = bmClient.getOrdersByState(state=1)
+    BMNewOrders = BMClient.getOrdersByState(state=1)
+    RFNewOrders = RFClient.getOrdersByState(state="NEW")
 
-    return processNewOrders(newOrders, bmClient)
+    return processNewOrders(BMNewOrders, BMClient)
 
 # performSWDAddOrder()

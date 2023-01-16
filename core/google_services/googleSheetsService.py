@@ -1,4 +1,6 @@
-from core.custom_exceptions.general_exceptions import IncorrectSheetTitleException
+import json
+
+from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitleException
 import io
 from typing import List, Dict, Tuple
 import apiclient
@@ -182,6 +184,8 @@ class GoogleSheetsService:
         return self.executeBatchRequest(requests=request, documentId=documentID)
 
     def executeBatchRequest(self, requests, documentId):
+        with open ("dump.json", "w") as f:
+            f.write(json.dumps(requests, indent=3))
         self.sheetsService.spreadsheets().batchUpdate(
             body={'requests': requests, "includeSpreadsheetInResponse": False},
             spreadsheetId=documentId, fields='').execute()

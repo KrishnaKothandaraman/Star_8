@@ -31,8 +31,7 @@ def updateGoogleSheet():
 
         start = time.time()
         service = GoogleSheetsService()
-        RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
-                                       dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
+        RFAPIInstance = RefurbedClient(key=keys["RF"]["token"])
         BMAPIInstance = BackMarketClient(key=keys["BM"]["token"])
 
         recordsUpdated = ordersdb_controller.performUpdateExistingOrdersUpdate(service=service,
@@ -52,7 +51,7 @@ def updateGoogleSheet():
                                       }),
                              200)
     except googleapiclient.errors.HttpError as e:
-        return make_response(jsonify({"type": "fail",
+        return make_response(jsonify({"type": "Google API fail",
                                       "message": e.reason
                                       }),
                              400)

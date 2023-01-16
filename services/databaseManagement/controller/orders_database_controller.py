@@ -69,7 +69,7 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
 
     googleSheetItemIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID,
                                                      sheetName=SPREADSHEET_NAME,
-                                                     column="AQ")
+                                                     column="AP")
 
     googleSheetIDS = {f"{item[0][0]}_{item[1][0]}": idx + 1 for idx, item in
                       enumerate(list(zip(googleSheetOrderIDs[1:], googleSheetItemIDs[1:]))) if
@@ -79,7 +79,6 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
     nowDateTime = datetime.datetime.now()
     RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(2), end=nowDateTime)
     BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(2), end=nowDateTime)
-
     ordersToBeUpdated = {
         "BackMarket": [],
         "Refurbed": []
@@ -129,10 +128,8 @@ def updateGoogleSheetNonApi():
                                                       column="A")
     googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
-    RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
-                                   dateFieldName="released_at", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
-    BMAPIInstance = BackMarketClient(key=keys["BM"]["token"], itemKeyName="orderlines",
-                                     dateFieldName="date_creation", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
+    RFAPIInstance = RefurbedClient(key=keys["RF"]["token"])
+    BMAPIInstance = BackMarketClient(key=keys["BM"]["token"])
 
     offset = 20
     startOffset = 20
