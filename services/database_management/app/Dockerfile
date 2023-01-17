@@ -25,4 +25,4 @@ RUN pip install --no-cache-dir -r services/database_management/requirements.txt
 
 ENV GOOGLE_APPLICATION_CREDENTIALS=services/databaseManagement/serviceAccountCredentials.json
 
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 2 --timeout 0 services.databaseManagement.view.app:app
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 2 --timeout 0 services.database_management.app.app:app
