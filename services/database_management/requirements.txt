@@ -6,3 +6,4 @@ Flask_Cors
 pandas
 requests
 aiohttp
+python-dotenv

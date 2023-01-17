@@ -13,11 +13,14 @@ from core.custom_exceptions.general_exceptions import GenericAPIException, Incor
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
+from dotenv import load_dotenv
 
-REMOTE_CHECK_APIKEY = os.environ["remote-check-api-key"]
-APP_SHEET_ACCESS_KEY = os.environ["appsheet-accesskey"]
-SWD_SHOPKEY = os.environ["swd-shopkey"]
-SWD_SHOPID = os.environ["swd-shopid"]
+load_dotenv()
+
+REMOTE_CHECK_APIKEY = os.environ["REMOTECHECKAPIKEY"]
+APP_SHEET_ACCESS_KEY = os.environ["APPSHEETACCESSKEY"]
+SWD_SHOPKEY = os.environ["SWDSHOPKEY"]
+SWD_SHOPID = os.environ["SWDSHOPID"]
 APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 
 

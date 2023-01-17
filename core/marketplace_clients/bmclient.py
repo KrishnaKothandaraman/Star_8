@@ -6,8 +6,10 @@ from pandas import to_datetime as to_datetime
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 import os
+from dotenv import load_dotenv
 
-BM_KEY = os.environ["bm-token"]
+load_dotenv()
+BM_KEY = os.environ["BMTOKEN"]
 
 
 class BackMarketClient(MarketPlaceClient):

@@ -7,8 +7,10 @@ import requests
 import core.types.refurbedAPI as RFtypes
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
+from dotenv import load_dotenv
 
-RF_ACCESS_KEY = os.environ["rf-token"]
+load_dotenv()
+RF_ACCESS_KEY = os.environ["RFTOKEN"]
 
 
 class RefurbedClient(MarketPlaceClient):
