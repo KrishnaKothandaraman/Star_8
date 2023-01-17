@@ -1,6 +1,5 @@
 import os
 
-os.environ["APPAUTHTOKEN"] = "12345"
 os.environ["remote-check-api-key"] = "hu685pkl-0lr1-7jx5-r3be-yzxjaqnrzfm9"
 os.environ["appsheet-accesskey"] = "V2-mwTj5-nvH7J-6sv08-6yfrG-OSs2H-jQEOe-sWbY9-mZ5ha"
 os.environ["rf-token"] = "Plain e01e77cd-899f-4964-a44f-ec603ab62d17"
