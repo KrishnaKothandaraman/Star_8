@@ -1,16 +1,24 @@
 import hashlib
 import hmac
 import json
+import os
 import random
 import string
 import time
+import traceback
 import requests
 from typing import Tuple, List
-from core.custom_exceptions.general_exceptions import GenericAPIException
+from flask import make_response, jsonify, request
+from core.custom_exceptions.general_exceptions import GenericAPIException, IncorrectAuthTokenException
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
-from keys import keys
+
+REMOTE_CHECK_APIKEY = os.environ["remote-check-api-key"]
+APP_SHEET_ACCESS_KEY = os.environ["appsheet-accesskey"]
+SWD_SHOPKEY = os.environ["swd-shopkey"]
+SWD_SHOPID = os.environ["swd-shopid"]
+APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 
 
 # utility function for swd authentication
@@ -21,8 +29,8 @@ def generateSalt() -> str:
 # utility function for swd authentication
 def generateHash(timestamp, salt) -> str:
     return hmac.new(
-        msg=f"{keys['shopwedo']['shopid']}{keys['shopwedo']['shopkey']}{timestamp}{salt}".encode(),
-        key=keys['shopwedo']['shopkey'].encode(), digestmod=hashlib.sha512).hexdigest()
+        msg=f"{SWD_SHOPID}{SWD_SHOPKEY}{timestamp}{salt}".encode(),
+        key=SWD_SHOPKEY.encode(), digestmod=hashlib.sha512).hexdigest()
 
 
 # utility for swd auth
@@ -31,7 +39,7 @@ def generateSWDAuthJson():
     salt = generateSalt()
     token = generateHash(timestamp=timestamp, salt=salt)
     return {
-        "shopid": keys['shopwedo']['shopid'],
+        "shopid": SWD_SHOPID,
         "timestamp": timestamp,
         "salt": salt,
         "token": token
@@ -50,7 +58,7 @@ def getSWDCreateOrderBody(formattedOrder: dict, items: []):
             "firstname": formattedOrder["shipping_first_name"],
             "lastname": formattedOrder["shipping_last_name"],
             "company": formattedOrder["company"],
-            "street": f"{formattedOrder['shipping_address1']},{formattedOrder['shipping_address1']}",
+            "street": f"{formattedOrder['shipping_address1']},{formattedOrder['shipping_address2']}",
             "box": "",
             "zip": formattedOrder["shipping_postal_code"],
             "city": formattedOrder["shipping_city"],
@@ -68,7 +76,7 @@ def updateAppSheetWithRows(rows: List):
     requests.post(
         url='https://api.appsheet.com/api/v2/apps/6aec3910-fe2b-4d41-840e-aee105698fe3/tables/Order_Notice/Add',
         headers={'Content-Type': 'application/json',
-                 'applicationAccessKey': keys["appsheet_accesskey"]},
+                 'applicationAccessKey': APP_SHEET_ACCESS_KEY},
         data={
             "mode": 'raw',
             "raw": {
@@ -88,7 +96,7 @@ def updateAppSheetWithRows(rows: List):
 
 
 def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
-    headers = {"Tracking-Api-Key": keys["remote-check"]}
+    headers = {"Tracking-Api-Key": REMOTE_CHECK_APIKEY}
     body = {
         "country": f"{country}",
         "postal_code": f"{postal_code}",
@@ -108,7 +116,9 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     stockCheckResp = requests.post(url="https://admin.shopwedo.com/api/getStock", data=formData)
 
     if stockCheckResp.status_code != 200:
-        raise GenericAPIException
+        print(f"Stock check failed for {sku} Reason: {stockCheckResp.reason}")
+        return False, "", ""
+
     # loop through response and check master_atp field which is stock for this listing
     for listing, data in stockCheckResp.json().items():
         if data["reference2"] == sku:
@@ -185,19 +195,39 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
     return updateCounter
 
 
-def performSWDAddOrder():
-    """Call this method to run the workflow to pull new orders and add orders to SWD"""
-    BMClient = BackMarketClient(key=keys["BM"]["token"])
-    RFClient = RefurbedClient(key=keys["RF"]["token"])
+def swdAddOrder():
+    try:
+        key = request.headers.get('auth-token')
 
-    numNewOrders = 0
+        if not key or key != APP_AUTH_TOKEN:
+            raise IncorrectAuthTokenException("Incorrect auth token provided")
 
-    BMNewOrders = BMClient.getOrdersByState(state=1)
-    numNewOrders += processNewOrders(BMNewOrders, BMClient)
+        BMClient = BackMarketClient()
+        RFClient = RefurbedClient()
 
-    RFNewOrders = RFClient.getOrdersByState(state="NEW")
-    numNewOrders += processNewOrders(RFNewOrders, RFClient)
+        numNewOrders = 0
 
-    return numNewOrders
+        BMNewOrders = BMClient.getOrdersByState(state=1)
+        numNewOrders += processNewOrders(BMNewOrders, BMClient)
+
+        RFNewOrders = RFClient.getOrdersByState(state="NEW")
+        numNewOrders += processNewOrders(RFNewOrders, RFClient)
+
+        return make_response(jsonify({"type": "success",
+                                      "message": f"Updated {numNewOrders} new orders"
+                                      }),
+                             200)
+
+    except IncorrectAuthTokenException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             401)
+    except Exception:
+        print(traceback.print_exc())
+        return make_response(jsonify({"type": "fail",
+                                      "message": "Contact support. Check server logs"
+                                      }),
+                             500)
 
 # performSWDAddOrder()

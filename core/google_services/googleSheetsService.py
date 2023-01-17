@@ -184,8 +184,6 @@ class GoogleSheetsService:
         return self.executeBatchRequest(requests=request, documentId=documentID)
 
     def executeBatchRequest(self, requests, documentId):
-        with open ("dump.json", "w") as f:
-            f.write(json.dumps(requests, indent=3))
         self.sheetsService.spreadsheets().batchUpdate(
             body={'requests': requests, "includeSpreadsheetInResponse": False},
             spreadsheetId=documentId, fields='').execute()

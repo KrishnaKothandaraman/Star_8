@@ -1,5 +1,5 @@
 # CREDENTIALS
-GOOGLE_VISION_KEY_PATH = "services/databaseManagement/serviceAccountCredentials.json"
+GOOGLE_VISION_KEY_PATH = "serviceAccountCredentials.json"
 
 
 # DRIVE
