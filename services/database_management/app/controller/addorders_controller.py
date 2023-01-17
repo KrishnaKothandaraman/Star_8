@@ -210,7 +210,7 @@ def swdAddOrder():
 
         numNewOrders = 0
 
-        BMNewOrders = BMClient.getOrdersByState(state=1)[:1]
+        BMNewOrders = BMClient.getOrdersByState(state=1)
         numNewOrders += processNewOrders(BMNewOrders, BMClient)
 
         RFNewOrders = RFClient.getOrdersByState(state="NEW")
