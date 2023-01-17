@@ -1,3 +1,3 @@
-from services.analytics.app import app
+from services.databaseManagement.view import app
 
 application = app.create_api_app()
