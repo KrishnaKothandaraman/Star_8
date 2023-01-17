@@ -11,10 +11,11 @@ WORKDIR $APP_HOME
 COPY . ./
 RUN pwd
 RUN ls -lrt
+RUN ls services/database_management
 ENV PYTHONPATH=$APP_HOME
 
 # Install production dependencies.
-RUN pip install --no-cache-dir -r ../requirements.txt
+RUN pip install --no-cache-dir -r services/database_management/requirements.txt
 
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.
