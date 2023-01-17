@@ -141,7 +141,8 @@ def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
 
 def getShipperName(price: float, chosenShipperName: str, country_code: str, remoteCheckCode):
     # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
-    if price < 800 and remoteCheckCode == 204 and len(chosenShipperName.split(" ")) == 1 and country_code != "ES":
+    if price < 800 and remoteCheckCode == 204 and len(chosenShipperName.split(" ")) == 1 and \
+            country_code not in ("ES", "SE"):
         return "ups"
     else:
         return "dhlexpress"
@@ -209,7 +210,7 @@ def swdAddOrder():
 
         numNewOrders = 0
 
-        BMNewOrders = BMClient.getOrdersByState(state=1)
+        BMNewOrders = BMClient.getOrdersByState(state=1)[:1]
         numNewOrders += processNewOrders(BMNewOrders, BMClient)
 
         RFNewOrders = RFClient.getOrdersByState(state="NEW")
