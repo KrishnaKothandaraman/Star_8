@@ -1,6 +1,6 @@
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
-FROM python:3.7.4-slim
+FROM python:3.9.16-slim
 
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
@@ -23,6 +23,5 @@ RUN pip install --no-cache-dir -r services/database_management/requirements.txt
 # to be equal to the cores available.
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
 
-ENV GOOGLE_APPLICATION_CREDENTIALS=services/databaseManagement/serviceAccountCredentials.json
 
 CMD exec gunicorn --bind :$PORT --workers 1 --threads 2 --timeout 0 services.database_management.app.app:app
