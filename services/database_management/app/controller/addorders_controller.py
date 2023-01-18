@@ -74,8 +74,7 @@ def getSWDCreateOrderBody(formattedOrder: dict, items: []):
 
 
 def updateAppSheetWithRows(rows: List):
-    print(f"Updated sheet! with {rows}")
-    requests.post(
+    resp = requests.post(
         url='https://api.appsheet.com/api/v2/apps/6aec3910-fe2b-4d41-840e-aee105698fe3/tables/Order_Notice/Add',
         headers={'Content-Type': 'application/json',
                  'applicationAccessKey': APP_SHEET_ACCESS_KEY},
@@ -95,6 +94,7 @@ def updateAppSheetWithRows(rows: List):
                 "Rows": rows
             }
         }))
+    print(f"Updated sheet! with {rows}. Response code {resp.status_code}")
 
 
 def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
