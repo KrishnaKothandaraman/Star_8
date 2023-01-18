@@ -79,7 +79,7 @@ def updateAppSheetWithRows(rows: List):
         url='https://api.appsheet.com/api/v2/apps/6aec3910-fe2b-4d41-840e-aee105698fe3/tables/Order_Notice/Add',
         headers={'Content-Type': 'application/json',
                  'applicationAccessKey': APP_SHEET_ACCESS_KEY},
-        data={
+        data=json.dumps({
             "mode": 'raw',
             "raw": {
                 "Action": "Add",
@@ -94,7 +94,7 @@ def updateAppSheetWithRows(rows: List):
                 },
                 "Rows": rows
             }
-        })
+        }))
 
 
 def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
