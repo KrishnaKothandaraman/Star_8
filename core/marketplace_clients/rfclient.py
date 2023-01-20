@@ -9,6 +9,8 @@ from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from dotenv import load_dotenv
 
+from core.types.orderStateTypes import newStates
+
 load_dotenv()
 RF_ACCESS_KEY = os.environ["RFTOKEN"]
 
@@ -102,8 +104,31 @@ class RefurbedClient(MarketPlaceClient):
                 items += adapterItem
         return items
 
+    @staticmethod
+    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
+        trackingData = {"id": order["item_id"],
+                        "state": "SHIPPED",
+                        "parcel_tracking_url": swdRespBody["shipping"][0]["tracking_url"],
+                        "item_identifier": item["serialnumber"][0]}
+
+        return trackingData
+
     def __getAuthHeader(self):
         return {"Authorization": self.key}
+
+    @staticmethod
+    def __getMarketPlaceState(state: newStates) -> RFtypes.OrderStates:
+        if state == "NEW":
+            return "ACCEPTED"
+        elif state == "UPLOAD_TRACKING":
+            raise NotImplementedError
+
+    def __getBodyForUpdateRequestByState(self, order, orderline, state):
+        if state == "ACCEPTED":
+            return {
+                "id": orderline["id"],
+                "state": state
+            }
 
     def __crawlURL(self, url, payload):
         orders = []
@@ -182,41 +207,41 @@ class RefurbedClient(MarketPlaceClient):
 
         return orders
 
-    def updateStateOfOrder(self, order):
+    def updateStateOfOrder(self, order, state: newStates, body):
         errors = 0
         updateCounter = 0
+        newState = self.__getMarketPlaceState(state)
         for orderline in order[self.itemKeyName]:
             order_id = str(self.getOrderID(order))
             item_id = orderline["id"]
-            resp = self.MakeUpdateOrderStateByOrderIDRequest(order_id, item_id, "ACCEPTED")
-
+            body = self.__getBodyForUpdateRequestByState(order=order,
+                                                         orderline=orderline,
+                                                         state=newState) if not body else body
+            resp = self.MakeUpdateOrderStateByOrderIDRequest(orderID=str(order_id),
+                                                             body=body)
             if resp.status_code != 200:
                 print(f"ERROR for {order_id} {item_id}. "
                       f"Manully check in. Updated Failed: Code: {resp.status_code}, Reason: {resp.reason}")
                 errors += 1
             else:
                 updateCounter += 1
-                print(f"Updated state of {order_id} to {2}. Return code {resp.status_code}")
+                print(f"Updated state of {order_id} to {newState}. Return code {resp.status_code}")
 
         if errors:
             raise GenericAPIException(f"Update state to RF had errors")
 
         return updateCounter
 
-    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, item_id: str,
-                                             newState: RFtypes.OrderStates) -> requests.Response:
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, body) -> requests.Response:
 
-        print(f"RF: Updating state of {orderID} and item_id {item_id}")
+        print(f"RF: Updating state of {orderID}")
         url = f"https://api.refurbed.com/refb.merchant.v1.OrderItemService/UpdateOrderItemState"
-        body = {
-            "id": item_id,
-            "state": newState
-        }
         print(f"Sending {body=}")
         resp = requests.post(url=url,
                              headers=self.__getAuthHeader(),
                              data=json.dumps(body))
         return resp
+
 
 # rf = RefurbedClient(key=keys["RF"]["token"])
 # print(rf.updateStateOfOrder(rf.getOrdersByState("NEW")[0]))

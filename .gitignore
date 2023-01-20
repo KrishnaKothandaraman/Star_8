@@ -1,4 +1,6 @@
-services/databaseManagement/serviceAccountCredentials.json
-get_order_history.py
+services/database_management/serviceAccountCredentials.json
+keys.py
 data/
+.env
 *.pyc
+.idea

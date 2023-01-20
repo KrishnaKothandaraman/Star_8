@@ -1,7 +1,11 @@
 import datetime
-from typing import List
+from typing import List, Literal, Optional
+
+import requests
+
 from core.marketplace_clients.databaseutils.column_mapping import columnMapping
 import core.types.refurbedAPI as RFTypes
+from core.types.orderStateTypes import newStates
 
 
 class MarketPlaceClient:
@@ -96,10 +100,14 @@ class MarketPlaceClient:
     def getOrderID(self, order):
         return order[self.orderIDFieldName]
 
-    def updateStateOfOrder(self, order):
+    def updateStateOfOrder(self, order, state: newStates, body: Optional[dict]):
         raise NotImplementedError
 
-    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, identifier, newState):
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, body) -> requests.Response:
+        raise NotImplementedError
+
+    @staticmethod
+    def __getMarketPlaceState(state: newStates):
         raise NotImplementedError
 
     @staticmethod
@@ -109,3 +117,7 @@ class MarketPlaceClient:
     @staticmethod
     def __checkIfGlobalMappingInItemMapping(mapping: str):
         return mapping and len(mapping) > 2 and mapping[:3] == "../"
+
+    @staticmethod
+    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
+        raise NotImplementedError

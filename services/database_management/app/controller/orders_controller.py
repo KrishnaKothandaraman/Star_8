@@ -200,7 +200,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
                                               }]
                                        )
             else:
-                updateCounter += MarketClient.updateStateOfOrder(order)
+                updateCounter += MarketClient.updateStateOfOrder(order, "NEW", None)
     return updateCounter
 
 
@@ -245,7 +245,8 @@ def isValidIMEI(imei: str) -> bool:
 
 
 def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) -> int:
-    for order in orders[:2]:
+    updateCounter = 0
+    for order in orders:
         formattedOrder = Client.convertOrderToSheetColumns(order)[0]
         print(f"Calling swd with {formattedOrder['order_id']}")
         swdGetOrder = performSWDGetOrder(orderID=formattedOrder["order_id"])
@@ -260,36 +261,31 @@ def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) 
             print(f"OrderID {formattedOrder['order_id']} not shipped yet")
             continue
 
-        trackingDataList = []
         for item in swdRespBody["items"]:
-            trackingData = {
-                "order_id": formattedOrder["order_id"],
-                "new_state": 3,
-                "tracking_number": "",
-                "tracking_url": "",
-                "imei": "",
-                "serial_number": "",
-                "shipper": ""
-            }
             if not item["serialnumber"] or not item["picked"]:
                 continue
 
-            trackingData["tracking_url"] = swdRespBody["shipping"][0]["tracking_url"]
-            trackingData["tracking_number"] = swdRespBody["shipping"][0]["code"]
-            trackingData["serial_number"] = item["serialnumber"][0]
-            trackingData["shipper"] = swdRespBody["shipping"][0]["provider"]
+            trackingData = Client.getBodyForUpdateStateToShippedRequest(order=formattedOrder,
+                                                                        item=item,
+                                                                        swdRespBody=swdRespBody)
 
-            if isValidIMEI(item["serialnumber"][0]):
-                trackingData["imei"] = item["serialnumber"][0]
+            resp = Client.MakeUpdateOrderStateByOrderIDRequest(formattedOrder["order_id"], trackingData)
+            print(resp.status_code)
+            if resp.status_code != 200:
+                print(f"Update tracking info for {formattedOrder['order_id']} failed. {resp.reason}")
+                updateAppSheetWithRows(rows=[{"order_id": int(formattedOrder["order_id"]),
+                                              "Note": f"Upload tracking info failed. Error code: {resp.status_code}"
+                                                      f",Error json {resp.reason}"
+                                              }]
+                                       )
             else:
-                del trackingData["imei"]
-
-
-
-            trackingDataList.append(trackingData)
-
-        print(trackingDataList)
-    return 0
+                print(f"Upload tracking info for {formattedOrder['order_id']} successful")
+                updateAppSheetWithRows(rows=[{"order_id": int(formattedOrder["order_id"]),
+                                              "Note": f"Done Upload the tracking Already "
+                                              }]
+                                       )
+                updateCounter += 1
+    return updateCounter
 
 
 def updateTrackingInfo():
@@ -304,8 +300,11 @@ def updateTrackingInfo():
 
         numNewOrders = 0
 
-        BMPendingShipmentOrders = BMClient.getOrdersByState(state=3)
-        numNewOrders += processPendingShipmentOrders(BMPendingShipmentOrders, BMClient)
+        # BMPendingShipmentOrders = BMClient.getOrdersByState(state=3)
+        # numNewOrders += processPendingShipmentOrders(BMPendingShipmentOrders, BMClient)
+
+        RFPendingShipmentOrders = RFClient.getOrdersByState(state="ACCEPTED")[:2]
+        numNewOrders += processPendingShipmentOrders(RFPendingShipmentOrders, RFClient)
 
         return make_response(jsonify({"type": "success",
                                       "message": f"Updated {numNewOrders} new orders"

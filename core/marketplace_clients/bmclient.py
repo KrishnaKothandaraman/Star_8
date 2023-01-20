@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 import requests
 import core.types.backmarketAPI as BMTypes
 from pandas import to_datetime as to_datetime
@@ -7,6 +7,8 @@ from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 import os
 from dotenv import load_dotenv
+
+from core.types.orderStateTypes import newStates
 
 load_dotenv()
 BM_KEY = os.environ["BMTOKEN"]
@@ -89,8 +91,38 @@ class BackMarketClient(MarketPlaceClient):
                 items += adapterItem
         return items
 
+    @staticmethod
+    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
+        trackingData = {"order_id": order["order_id"], "new_state": 3, "tracking_number": swdRespBody["shipping"][0]["code"],
+                        "tracking_url": swdRespBody["shipping"][0]["tracking_url"], "imei": "",
+                        "serial_number": item["serialnumber"][0], "shipper": swdRespBody["shipping"][0]["provider"]}
+
+        if len(item["serialnumber"]) == 15:
+            trackingData["imei"] = item["serialnumber"][0]
+        else:
+            del trackingData["imei"]
+
+        return trackingData
+
     def __getAuthHeader(self):
         return {"Authorization": f"Basic {self.key}"}
+
+    @staticmethod
+    def __getMarketPlaceState(state: newStates) -> int:
+        if state == "NEW":
+            return BMTypes.BackMarketOrderlinesStates.Order_Accepted.value
+        elif state == "UPLOAD_TRACKING":
+            return BMTypes.BackMarketOrderlinesStates.Shipped.value
+
+    def __getBodyForUpdateRequestByState(self, order: list, orderline: list, state: int):
+        if state == BMTypes.BackMarketOrderlinesStates.Order_Accepted.value:
+            return {
+                "order_id": int(self.getOrderID(order)),
+                "new_state": state,
+                "sku": self.getSku(orderline)
+            }
+        else:
+            raise NotImplementedError
 
     def __crawlURL(self, url, endDate: Optional[str]):
         data = []
@@ -161,36 +193,36 @@ class BackMarketClient(MarketPlaceClient):
 
         return self.__crawlURL(url=url, endDate=None)
 
-    def updateStateOfOrder(self, order):
-
+    def updateStateOfOrder(self, order, state: newStates, body):
         errors = 0
         updateCounter = 0
+        newState = self.__getMarketPlaceState(state)
         for orderline in order[self.itemKeyName]:
             sku: str = self.getSku(orderline)
             order_id = self.getOrderID(order)
-            resp = self.MakeUpdateOrderStateByOrderIDRequest(str(order_id), sku, 2)
+            body = self.__getBodyForUpdateRequestByState(order=order,
+                                                         orderline=orderline,
+                                                         state=newState) if not body else body
+            resp = self.MakeUpdateOrderStateByOrderIDRequest(orderID=str(order_id),
+                                                             body=body)
             if resp.status_code != 200:
                 print(f"ERROR for {order_id} {sku}. "
                       f"Manully check in. Updated Failed: Code: {resp.status_code}, Resp: {resp.json()}")
                 errors += 1
             else:
                 updateCounter += 1
-                print(f"Updated state of {order_id} to {2}. Return code {resp.status_code}")
+                print(f"Updated state of {order_id} to {newState}. Return code {resp.status_code}")
 
         if errors:
             raise GenericAPIException(f"Update state to BM had errors")
 
         return updateCounter
 
-    def MakeUpdateOrderStateByOrderIDRequest(self, orderID: str, sku: str, newState: int) -> requests.Response:
+    def MakeUpdateOrderStateByOrderIDRequest(self, orderID, body) -> requests.Response:
 
-        print(f"BM: Updating state of {orderID} and sku {sku}")
+        print(f"BM: Updating state of {orderID}")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
-        body = {
-            "order_id": int(orderID),
-            "new_state": newState,
-            "sku": sku
-        }
+
         print(f"Sending {body=}")
         resp = requests.post(url=url,
                              headers=self.__getAuthHeader(),
