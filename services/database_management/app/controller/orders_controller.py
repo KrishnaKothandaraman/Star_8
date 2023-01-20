@@ -136,6 +136,15 @@ def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
     return createOrderResponse
 
 
+def performSWDGetOrder(orderID: str) -> requests.Response:
+    formData = {"auth": json.dumps(generateSWDAuthJson()),
+                "data": json.dumps({
+                    "external_order_id": orderID
+                })}
+
+    return requests.post(url="https://admin.shopwedo.com/api/getOrder", data=formData)
+
+
 def getShipperName(price: float, chosenShipperName: str, country_code: str, remoteCheckCode):
     # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
     if price < 800 and remoteCheckCode == 204 and len(chosenShipperName.split(" ")) == 1 and \
@@ -231,7 +240,55 @@ def swdAddOrder():
                              500)
 
 
+def isValidIMEI(imei: str) -> bool:
+    return len(imei) == 15
+
+
 def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) -> int:
+    for order in orders[:2]:
+        formattedOrder = Client.convertOrderToSheetColumns(order)[0]
+        print(f"Calling swd with {formattedOrder['order_id']}")
+        swdGetOrder = performSWDGetOrder(orderID=formattedOrder["order_id"])
+
+        if swdGetOrder.status_code != 200:
+            print(f"OrderID {formattedOrder['order_id']} not found in swd")
+            continue
+
+        swdRespBody = swdGetOrder.json()[0][0]
+
+        if not swdRespBody["shipping"]:
+            print(f"OrderID {formattedOrder['order_id']} not shipped yet")
+            continue
+
+        trackingDataList = []
+        for item in swdRespBody["items"]:
+            trackingData = {
+                "order_id": formattedOrder["order_id"],
+                "new_state": 3,
+                "tracking_number": "",
+                "tracking_url": "",
+                "imei": "",
+                "serial_number": "",
+                "shipper": ""
+            }
+            if not item["serialnumber"] or not item["picked"]:
+                continue
+
+            trackingData["tracking_url"] = swdRespBody["shipping"][0]["tracking_url"]
+            trackingData["tracking_number"] = swdRespBody["shipping"][0]["code"]
+            trackingData["serial_number"] = item["serialnumber"][0]
+            trackingData["shipper"] = swdRespBody["shipping"][0]["provider"]
+
+            if isValidIMEI(item["serialnumber"][0]):
+                trackingData["imei"] = item["serialnumber"][0]
+            else:
+                del trackingData["imei"]
+
+
+
+            trackingDataList.append(trackingData)
+
+        print(trackingDataList)
     return 0
 
 
@@ -250,6 +307,10 @@ def updateTrackingInfo():
         BMPendingShipmentOrders = BMClient.getOrdersByState(state=3)
         numNewOrders += processPendingShipmentOrders(BMPendingShipmentOrders, BMClient)
 
+        return make_response(jsonify({"type": "success",
+                                      "message": f"Updated {numNewOrders} new orders"
+                                      }),
+                             200)
 
     except IncorrectAuthTokenException as e:
         return make_response(jsonify({"type": "fail",
@@ -262,5 +323,3 @@ def updateTrackingInfo():
                                       "message": "Contact support. Check server logs"
                                       }),
                              500)
-
-# performSWDAddOrder()
