@@ -83,16 +83,16 @@ class RefurbedClient(MarketPlaceClient):
                 adapterItem = [
                     {
                         "skuType": "reference",
-                        "sku": "002331",
+                        "sku": "002204",
                         "amount": quantity,
                         "price": 2
                     },
-                    {
-                        "skuType": "barcode",
-                        "sku": "002510",
-                        "amount": quantity,
-                        "price": 2
-                    }
+                    # {
+                    #     "skuType": "barcode",
+                    #     "sku": "002510",
+                    #     "amount": quantity,
+                    #     "price": 2
+                    # }
                 ]
             elif "EUS" not in swdModelName:
                 adapterItem = None
