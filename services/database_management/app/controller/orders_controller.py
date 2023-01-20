@@ -79,20 +79,17 @@ def updateAppSheetWithRows(rows: List):
         headers={'Content-Type': 'application/json',
                  'applicationAccessKey': APP_SHEET_ACCESS_KEY},
         data=json.dumps({
-            "mode": 'raw',
-            "raw": {
-                "Action": "Add",
-                "Properties": {
-                    "Locale": "en-US",
-                    "Location": "47.623098, -122.330184",
-                    "Timezone": "Pacific Standard Time",
-                    "UserSettings": {
-                        "Option 1": "value1",
-                        "Option 2": "value2"
-                    }
-                },
-                "Rows": rows
-            }
+            "Action": "Add",
+            "Properties": {
+                "Locale": "en-US",
+                "Location": "47.623098, -122.330184",
+                "Timezone": "Pacific Standard Time",
+                "UserSettings": {
+                    "Option 1": "value1",
+                    "Option 2": "value2"
+                }
+            },
+            "Rows": rows
         }))
     print(f"Updated sheet! with {rows}. Response code {resp.status_code}")
 
@@ -220,6 +217,39 @@ def swdAddOrder():
                                       "message": f"Updated {numNewOrders} new orders"
                                       }),
                              200)
+
+    except IncorrectAuthTokenException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             401)
+    except Exception:
+        print(traceback.print_exc())
+        return make_response(jsonify({"type": "fail",
+                                      "message": "Contact support. Check server logs"
+                                      }),
+                             500)
+
+
+def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) -> int:
+    return 0
+
+
+def updateTrackingInfo():
+    try:
+        key = request.headers.get('auth-token')
+
+        if not key or key != APP_AUTH_TOKEN:
+            raise IncorrectAuthTokenException("Incorrect auth token provided")
+
+        BMClient = BackMarketClient()
+        RFClient = RefurbedClient()
+
+        numNewOrders = 0
+
+        BMPendingShipmentOrders = BMClient.getOrdersByState(state=3)
+        numNewOrders += processPendingShipmentOrders(BMPendingShipmentOrders, BMClient)
+
 
     except IncorrectAuthTokenException as e:
         return make_response(jsonify({"type": "fail",
