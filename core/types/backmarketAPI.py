@@ -2,12 +2,12 @@ import enum
 
 
 class BackMarketOrderStates(enum.Enum):
-    New: 0
-    Pending_Payment: 10
-    Accept: 1
-    Pending_Shipment: 3
-    Payment_Failed: 8
-    Shipped: 9
+    New = 0
+    Pending_Payment = 10
+    Accept = 1
+    Pending_Shipment = 3
+    Payment_Failed = 8
+    Shipped = 9
 
     @staticmethod
     def getStrFromEnum(val):
@@ -17,8 +17,8 @@ class BackMarketOrderStates(enum.Enum):
 
 
 class BackMarketGender(enum.Enum):
-    Male: 0
-    Female: 1
+    Male = 0
+    Female = 1
 
     @staticmethod
     def getStrFromEnum(val):
@@ -27,15 +27,15 @@ class BackMarketGender(enum.Enum):
 
 
 class BackMarketOrderlinesStates(enum.Enum):
-    New: 0
-    Validate_Orderline: 1
-    Order_Accepted: 2
-    Shipped: 3
-    Cancelled: 4
-    Refund_Before_Shipping: 5
-    Refund_After_Shipping: 6
-    Payment_Failed: 7
-    Awaiting_Payment: 8
+    New = 0
+    Validate_Orderline = 1
+    Order_Accepted = 2
+    Shipped = 3
+    Cancelled = 4
+    Refund_Before_Shipping = 5
+    Refund_After_Shipping = 6
+    Payment_Failed = 7
+    Awaiting_Payment = 8
 
     @staticmethod
     def getStrFromEnum(val):
