@@ -1,6 +1,8 @@
 services/database_management/serviceAccountCredentials.json
 keys.py
-data/
+sampledata/
 .env
 *.pyc
 .idea
+dump.json
+dump.txt

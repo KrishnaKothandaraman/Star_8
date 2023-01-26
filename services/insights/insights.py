@@ -101,8 +101,8 @@ def generateInsights(startDate, endDate):
     startTimer = time.time()
     print(f"{'':->90}")
     BMOrders = BMClient.getOrdersBetweenDates(startDateTime, endDateTime)
-    makeDirAndWriteToFile(filePath=f"data/bm/orders/{startDate}/{startDate}.json",
-                          dirPath=os.path.join(os.getcwd(), f"data/bm/orders/{startDate}"),
+    makeDirAndWriteToFile(filePath=f"../../sampledata/bm/orders/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"../../sampledata/bm/orders/{startDate}"),
                           data=BMOrders)
     total_time = time.time() - startTimer
     print(f"{f'BM Stats: It took {total_time} seconds': ^90}")
@@ -110,8 +110,8 @@ def generateInsights(startDate, endDate):
     startTimer = time.time()
     print(f"{'':->90}")
     RFOrders = RFClient.getOrdersBetweenDates(startDateTime, endDateTime)
-    makeDirAndWriteToFile(filePath=f"data/rf/orders/{startDate}/{startDate}.json",
-                          dirPath=os.path.join(os.getcwd(), f"data/rf/orders/{startDate}"),
+    makeDirAndWriteToFile(filePath=f"../../sampledata/rf/orders/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"../../sampledata/rf/orders/{startDate}"),
                           data=RFOrders)
     total_time = time.time() - startTimer
     print(f"{f'RF Stats: It took {total_time} seconds': ^90}")
@@ -123,8 +123,8 @@ def generateInsights(startDate, endDate):
     print("Insights generated")
 
     print("Writing insights")
-    makeDirAndWriteToFile(filePath=f"data/insights/{startDate}/{startDate}.json",
-                          dirPath=os.path.join(os.getcwd(), f"data/insights/{startDate}"),
+    makeDirAndWriteToFile(filePath=f"../../sampledata/insights/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"../../sampledata/insights/{startDate}"),
                           data=insights)
 
     insightList = [[f"'{sku}", insight["name"],
@@ -143,7 +143,7 @@ def generateInsights(startDate, endDate):
                     insight["RF"]["grading"]["SH2"], round(insight["RF"]["pricing"]["SH2"], 2),
                     ] for (sku, insight) in insights.items()]
 
-    with open(f"data/insights/{startDate}/{startDate}.csv", "w") as f:
+    with open(f"../../sampledata/insights/{startDate}/{startDate}.csv", "w") as f:
         writeToCSV(COLS, insightList, f)
     print("Insights written")
 
