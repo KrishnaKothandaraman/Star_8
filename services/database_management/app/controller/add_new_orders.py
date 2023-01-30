@@ -1,5 +1,6 @@
 import os
 import traceback
+import werkzeug.exceptions
 import services.database_management.app.controller.utils.swd_utils as swd_utils
 import services.database_management.app.controller.utils.general_utils as general_utils
 from typing import Tuple, List
@@ -57,7 +58,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
                 print(f"Created order failed due to {createOrderResp.reason}")
                 general_utils.updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
                                                             "Note": f"Shop we do add order failed. Error code: {createOrderResp.status_code}"
-                                                                    f",Error json {createOrderResp.reason}"
+                                                                    f",Error message: {createOrderResp.reason}"
                                                             }]
                                                      )
             else:
@@ -67,6 +68,10 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
 
 def swdAddOrder():
     try:
+        body = request.json
+    except werkzeug.exceptions.BadRequest:
+        body = None
+    try:
         key = request.headers.get('auth-token')
 
         if not key or key != APP_AUTH_TOKEN:
@@ -74,14 +79,19 @@ def swdAddOrder():
 
         BMClient = BackMarketClient()
         RFClient = RefurbedClient()
-
         numNewOrders = 0
+        if body:
+            print("Processing single order")
+            singleOrderID = body["single_order_id"]
+            vendor = BMClient if body["vendor"] == "Backmarket" else RFClient
+            newOrder = vendor.getOrderByID(orderID=singleOrderID)
+            numNewOrders += processNewOrders([newOrder], vendor)
+        else:
+            BMNewOrders = BMClient.getOrdersByState(state=1)
+            numNewOrders += processNewOrders(BMNewOrders, BMClient)
 
-        BMNewOrders = BMClient.getOrdersByState(state=1)
-        numNewOrders += processNewOrders(BMNewOrders, BMClient)
-
-        RFNewOrders = RFClient.getOrdersByState(state="NEW")
-        numNewOrders += processNewOrders(RFNewOrders, RFClient)
+            RFNewOrders = RFClient.getOrdersByState(state="NEW")
+            numNewOrders += processNewOrders(RFNewOrders, RFClient)
 
         return make_response(jsonify({"type": "success",
                                       "message": f"Updated {numNewOrders} new orders"

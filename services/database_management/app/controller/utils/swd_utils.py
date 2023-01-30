@@ -8,6 +8,7 @@ import requests
 import os
 from typing import Tuple
 from dotenv import load_dotenv
+
 from core.custom_exceptions.general_exceptions import GenericAPIException
 
 load_dotenv()
@@ -55,7 +56,7 @@ def getSWDCreateOrderBody(formattedOrder: dict, items: []):
         "shipping_address": {
             "firstname": formattedOrder["shipping_first_name"],
             "lastname": formattedOrder["shipping_last_name"],
-            "company": formattedOrder["company"],
+            "company": formattedOrder["company"] if formattedOrder["company"] else None,
             "street": f"{formattedOrder['shipping_address1']},{formattedOrder['shipping_address2']}",
             "box": "",
             "zip": formattedOrder["shipping_postal_code"],
@@ -106,7 +107,7 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
 def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps(getSWDCreateOrderBody(formattedOrder, items))}
-    createOrderResponse = requests.post(url="https://admin.shopwedo.com/api/createOrder", data=formData)
+    createOrderResponse = requests.post(url="https://api1.shopwedo.com/api/createOrder", data=formData)
     return createOrderResponse
 
 
@@ -115,5 +116,9 @@ def performSWDGetOrder(orderID: str) -> requests.Response:
                 "data": json.dumps({
                     "external_order_id": orderID
                 })}
+    return requests.post(url="https://api1.shopwedo.com/api/getOrder", data=formData)
 
-    return requests.post(url="https://admin.shopwedo.com/api/getOrder", data=formData)
+
+def performAuthTest() -> requests.Response:
+    data = {"auth": json.dumps(generateSWDAuthJson())}
+    return requests.post(url="https://admin.shopwedo.com/api/authTest", data=data)
