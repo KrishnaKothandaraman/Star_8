@@ -27,9 +27,9 @@ class BackMarketClient(MarketPlaceClient):
         self.orderIDFieldName = BMTypes.BMOrderIDFieldName
 
     @staticmethod
-    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelNames: List[str]) -> List[dict]:
         items = []
-        for orderItem in orderItems:
+        for swdModelName, orderItem in list(zip(swdModelNames, orderItems)):
             listing = orderItem["listing"]
             quantity = orderItem["quantity"]
             price = orderItem["price"]
@@ -76,13 +76,22 @@ class BackMarketClient(MarketPlaceClient):
                         "amount": quantity,
                         "price": 2
                     },
-                    {
+
+                ]
+                if not any(item["sku"] == "SKU_136666" for item in items):
+                    adapterItem += [{
                         "skuType": "barcode",
                         "sku": "SKU_136666",
                         "amount": quantity,
                         "price": 2
-                    }
-                ]
+                    }]
+            elif "EUS" in swdModelName:
+                adapterItem = {
+                    "skuType": "reference",
+                    "sku": "002204",
+                    "amount": quantity,
+                    "price": 2
+                },
             elif "EUS" not in swdModelName:
                 adapterItem = None
 
@@ -93,7 +102,8 @@ class BackMarketClient(MarketPlaceClient):
 
     @staticmethod
     def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
-        trackingData = {"order_id": order["order_id"], "new_state": 3, "tracking_number": swdRespBody["shipping"][0]["code"],
+        trackingData = {"order_id": order["order_id"], "new_state": 3,
+                        "tracking_number": swdRespBody["shipping"][0]["code"],
                         "tracking_url": swdRespBody["shipping"][0]["tracking_url"], "imei": "",
                         "serial_number": item["serialnumber"][0], "shipper": swdRespBody["shipping"][0]["provider"]}
 

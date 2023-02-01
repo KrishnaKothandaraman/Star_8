@@ -111,7 +111,7 @@ class MarketPlaceClient:
         raise NotImplementedError
 
     @staticmethod
-    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: List[str]) -> List[dict]:
         raise NotImplementedError
 
     @staticmethod

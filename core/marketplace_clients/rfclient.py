@@ -1,10 +1,9 @@
 import datetime
 import json
 import os
-from typing import Optional, List
-
 import requests
 import core.types.refurbedAPI as RFtypes
+from typing import Optional, List
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from dotenv import load_dotenv
@@ -30,9 +29,9 @@ class RefurbedClient(MarketPlaceClient):
         self.orderIDFieldName = RFtypes.RFOrderIDFieldName
 
     @staticmethod
-    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelName: str) -> List[dict]:
+    def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelNames: List[str]) -> List[dict]:
         items = []
-        for orderItem in orderItems:
+        for swdModelName, orderItem in list(zip(swdModelNames, orderItems)):
             listing = orderItem["sku"]
             quantity = 1
             price = orderItem["settlement_total_charged"]
@@ -225,7 +224,7 @@ class RefurbedClient(MarketPlaceClient):
                 errors += 1
             else:
                 updateCounter += 1
-                print(f"Updated state of {order_id} to {newState}. Return code {resp.status_code}")
+                print(f"Updated state of {order_id}, {item_id} to {newState}. Return code {resp.status_code}")
 
         if errors:
             raise GenericAPIException(f"Update state to RF had errors")

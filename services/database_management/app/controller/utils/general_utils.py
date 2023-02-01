@@ -27,7 +27,10 @@ def updateAppSheetWithRows(rows: List):
             },
             "Rows": rows
         }))
-    print(f"Updated sheet! with {rows}. Response code {resp.status_code}")
+    if resp.status_code == 200:
+        print(f"Updated sheet! with {rows}. Response code {resp.status_code}")
+    else:
+        print(f"Update sheet failed! Code: {resp.status_code} message: {resp.reason}")
 
 
 def getShipperName(price: float, chosenShipperName: str, country_code: str, remoteCheckCode):

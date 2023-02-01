@@ -37,10 +37,14 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
                                                                  remoteCheckCode=remoteCheckCode)
         print(
             f"For {formattedOrder['order_id']} to country {formattedOrder['shipping_country_code']}, set shipper to {formattedOrder['shipper']}")
+
         orderItems = MarketClient.getOrderItems(order)
+        swdModelNames: List[str] = []
+
         for orderline in orderItems:
             listing = MarketClient.getSku(orderline)
-            stockExists, swdModelName, stockAmount = swd_utils.performSWDStockCheck(listing)
+            stockExists, swdModelName, _ = swd_utils.performSWDStockCheck(listing)
+            swdModelNames.append(swdModelName)
             if not stockExists:
                 general_utils.updateAppSheetWithRows(rows=[{"order_id": MarketClient.getOrderID(order),
                                                             "Note": f"This Over _sell  {listing}  need ask the Buyer change to "
@@ -52,7 +56,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
         # else here means the orderline loop was excited normally. No break
         else:
             print(f"All stock exists for order {swdModelName}")
-            SWDItemsBody = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelName)
+            SWDItemsBody = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelNames)
             createOrderResp = swd_utils.performSWDCreateOrder(formattedOrder, SWDItemsBody)
             if createOrderResp.status_code != 201:
                 print(f"Created order failed due to {createOrderResp.reason}")

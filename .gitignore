@@ -1,8 +1,9 @@
 services/database_management/serviceAccountCredentials.json
 keys.py
-sampledata/
+datadump/
 .env
 *.pyc
 .idea
 dump.json
 dump.txt
+.pytest_cache/
