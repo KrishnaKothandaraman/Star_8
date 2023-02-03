@@ -105,7 +105,7 @@ class BackMarketClient(MarketPlaceClient):
         trackingData = {"order_id": order["order_id"], "new_state": 3,
                         "tracking_number": swdRespBody["shipping"][0]["code"],
                         "tracking_url": swdRespBody["shipping"][0]["tracking_url"], "imei": "",
-                        "serial_number": item["serialnumber"][0], "shipper": swdRespBody["shipping"][0]["provider"]}
+                        "serial_number": item["serialnumber"][0], "shipper": swdRespBody["shipping"][0]["provider"].split("express")[0]}
 
         if len(item["serialnumber"]) == 15:
             trackingData["imei"] = item["serialnumber"][0]
