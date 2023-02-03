@@ -3,6 +3,35 @@ import unittest
 
 
 class TestBackmarketClient(unittest.TestCase):
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS iPad Pro"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002478",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
     def test_generateItemsBodyForSWDCreateOrderRequestWithDifferentCables(self):
         Client = BackMarketClient()
         orderItems = [
@@ -20,7 +49,7 @@ class TestBackmarketClient(unittest.TestCase):
         swdModelNames = ["EUS iPhone 11", "EUS iPhone 12"]
 
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
-                                                                   swdModelNames=swdModelNames)
+                                                                       swdModelNames=swdModelNames)
         expectedValue = [
             {
                 "skuType": "reference",
@@ -107,5 +136,3 @@ class TestBackmarketClient(unittest.TestCase):
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)
         self.assertCountEqual(expectedValue, actualValue)
-
-

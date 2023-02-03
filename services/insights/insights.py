@@ -3,7 +3,6 @@ from typing import Tuple, List, Dict
 import os
 import argparse
 import datetime
-from keys import keys
 from core.marketplace_clients.rfclient import RefurbedClient
 from core.marketplace_clients.bmclient import BackMarketClient
 from services.insights.utils.insightjson import initInsights
@@ -41,6 +40,7 @@ RF_KEY_MAP = {
     "price": "settlement_total_paid"
 }
 
+BASE_DIR = "/Users/krishnakothandaraman/PycharmProjects/Star8"
 
 def aggregateAndGetInsights(orders: List[Dict], insights: Dict, keyMap: Dict):
     for order in orders:
@@ -95,14 +95,14 @@ def generateInsights(startDate, endDate):
     """Generates insights between startDate 00:00:00 and endDate 23:59:59"""
     startDateTime = datetime.datetime.strptime(startDate, "%Y-%m-%d")
     endDateTime = datetime.datetime.strptime(endDate, "%Y-%m-%d")
-    BMClient = BackMarketClient(key=keys['BM']["token"], dateFieldName="date_created", itemKeyName="orderlines", dateStringFormat="%Y-%m-%dT%H:%M:%S%z")
-    RFClient = RefurbedClient(key=keys['RF']['token'], dateFieldName="date_released", itemKeyName="items", dateStringFormat="%Y-%m-%dT%H:%M:%S.%fZ")
+    BMClient = BackMarketClient()
+    RFClient = RefurbedClient()
 
     startTimer = time.time()
     print(f"{'':->90}")
     BMOrders = BMClient.getOrdersBetweenDates(startDateTime, endDateTime)
-    makeDirAndWriteToFile(filePath=f"../../sampledata/bm/orders/{startDate}/{startDate}.json",
-                          dirPath=os.path.join(os.getcwd(), f"../../sampledata/bm/orders/{startDate}"),
+    makeDirAndWriteToFile(filePath=f"../../datadump/bm/orders/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"../../datadump/bm/orders/{startDate}"),
                           data=BMOrders)
     total_time = time.time() - startTimer
     print(f"{f'BM Stats: It took {total_time} seconds': ^90}")
@@ -110,8 +110,8 @@ def generateInsights(startDate, endDate):
     startTimer = time.time()
     print(f"{'':->90}")
     RFOrders = RFClient.getOrdersBetweenDates(startDateTime, endDateTime)
-    makeDirAndWriteToFile(filePath=f"../../sampledata/rf/orders/{startDate}/{startDate}.json",
-                          dirPath=os.path.join(os.getcwd(), f"../../sampledata/rf/orders/{startDate}"),
+    makeDirAndWriteToFile(filePath=f"{BASE_DIR}/datadump/rf/orders/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"{BASE_DIR}/datadump/rf/orders/{startDate}"),
                           data=RFOrders)
     total_time = time.time() - startTimer
     print(f"{f'RF Stats: It took {total_time} seconds': ^90}")
@@ -123,8 +123,8 @@ def generateInsights(startDate, endDate):
     print("Insights generated")
 
     print("Writing insights")
-    makeDirAndWriteToFile(filePath=f"../../sampledata/insights/{startDate}/{startDate}.json",
-                          dirPath=os.path.join(os.getcwd(), f"../../sampledata/insights/{startDate}"),
+    makeDirAndWriteToFile(filePath=f"{BASE_DIR}/datadump/insights/{startDate}/{startDate}.json",
+                          dirPath=os.path.join(os.getcwd(), f"{BASE_DIR}/datadump/insights/{startDate}"),
                           data=insights)
 
     insightList = [[f"'{sku}", insight["name"],
@@ -143,7 +143,7 @@ def generateInsights(startDate, endDate):
                     insight["RF"]["grading"]["SH2"], round(insight["RF"]["pricing"]["SH2"], 2),
                     ] for (sku, insight) in insights.items()]
 
-    with open(f"../../sampledata/insights/{startDate}/{startDate}.csv", "w") as f:
+    with open(f"{BASE_DIR}/datadump/insights/{startDate}/{startDate}.csv", "w") as f:
         writeToCSV(COLS, insightList, f)
     print("Insights written")
 
