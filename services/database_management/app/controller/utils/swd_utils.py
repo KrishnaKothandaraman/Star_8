@@ -18,6 +18,7 @@ APP_SHEET_ACCESS_KEY = os.environ["APPSHEETACCESSKEY"]
 SWD_SHOPKEY = os.environ["SWDSHOPKEY"]
 SWD_SHOPID = os.environ["SWDSHOPID"]
 APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
+SWD_API_URL = "https://api1.shopwedo.com/api"
 
 
 # utility function for swd authentication
@@ -87,7 +88,7 @@ def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
 def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps({"reference": sku})}
-    stockCheckResp = requests.post(url="https://admin.shopwedo.com/api/getStock", data=formData)
+    stockCheckResp = requests.post(url=f"{SWD_API_URL}/getStock", data=formData)
 
     if stockCheckResp.status_code != 200:
         print(f"Stock check failed for {sku} Reason: {stockCheckResp.reason}")
@@ -107,7 +108,7 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
 def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps(getSWDCreateOrderBody(formattedOrder, items))}
-    createOrderResponse = requests.post(url="https://api1.shopwedo.com/api/createOrder", data=formData)
+    createOrderResponse = requests.post(url=f"{SWD_API_URL}/createOrder", data=formData)
     return createOrderResponse
 
 
@@ -116,9 +117,9 @@ def performSWDGetOrder(orderID: str) -> requests.Response:
                 "data": json.dumps({
                     "external_order_id": orderID
                 })}
-    return requests.post(url="https://api1.shopwedo.com/api/getOrder", data=formData)
+    return requests.post(url=f"{SWD_API_URL}/getOrder", data=formData)
 
 
 def performAuthTest() -> requests.Response:
     data = {"auth": json.dumps(generateSWDAuthJson())}
-    return requests.post(url="https://admin.shopwedo.com/api/authTest", data=data)
+    return requests.post(url=f"{SWD_API_URL}/authTest", data=data)
