@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Optional, List, Tuple
 import requests
 import core.types.backmarketAPI as BMTypes
@@ -9,6 +10,7 @@ import os
 from dotenv import load_dotenv
 
 from core.types.orderStateTypes import newStates
+from services.database_management.app.controller.utils.swd_utils import SWDShippingData
 
 load_dotenv()
 BM_KEY = os.environ["BMTOKEN"]
@@ -33,7 +35,9 @@ class BackMarketClient(MarketPlaceClient):
             listing = orderItem["listing"]
             quantity = orderItem["quantity"]
             price = orderItem["price"]
+            item_id = orderItem["id"]
             productItem = {
+                "external_orderline_id": item_id,
                 "skuType": "reference",
                 "sku": listing,
                 "amount": quantity,
@@ -105,7 +109,8 @@ class BackMarketClient(MarketPlaceClient):
         trackingData = {"order_id": order["order_id"], "new_state": 3,
                         "tracking_number": swdRespBody["shipping"][0]["code"],
                         "tracking_url": swdRespBody["shipping"][0]["tracking_url"], "imei": "",
-                        "serial_number": item["serialnumber"][0], "shipper": swdRespBody["shipping"][0]["provider"].split("express")[0]}
+                        "serial_number": item["serialnumber"][0],
+                        "shipper": swdRespBody["shipping"][0]["provider"].split("express")[0]}
 
         if len(item["serialnumber"]) == 15:
             trackingData["imei"] = item["serialnumber"][0]
@@ -113,6 +118,25 @@ class BackMarketClient(MarketPlaceClient):
             del trackingData["imei"]
 
         return trackingData
+
+    # @staticmethod
+    # def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+    #     trackingData = {"order_id": shipping_data.order_id,
+    #                     "sku": shipping_data.sku,
+    #                     "new_state": 3,
+    #                     "tracking_number": shipping_data.tracking_number,
+    #                     "tracking_url": shipping_data.tracking_url,
+    #                     "shipper": shipping_data.shipper}
+    #
+    #     if len(shipping_data.serial_numbers) == 1:
+    #         if len(shipping_data.serial_numbers[0]) == 15:
+    #             trackingData["imei"] = shipping_data.serial_numbers[0]
+    #         else:
+    #             trackingData["serial_number"] = shipping_data.serial_numbers[0]
+    #
+    #     return trackingData
+
+
 
     def __getAuthHeader(self):
         return {"Authorization": f"Basic {self.key}"}
@@ -239,14 +263,12 @@ class BackMarketClient(MarketPlaceClient):
                              data=body)
         return resp
 
+
 # if __name__ == "__main__":
-#     bm = BackMarketClient(key="YmFjazJsaWZlcHJvZHVjdHNAb3V0bG9vay5jb206ODMyNzhydWV3ZmI3MzpmbmopKE52OCY4")
-# #     # with open("dump.json", "w") as f:
-# #     #     f.write(
-# #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
-# #
-# #     # print(bm.getOrderByID("25923025"))
-#     resp = bm.updateOrderStateByOrderID(orderID="25924512", sku="002029SH", newState=2)
-#     print(resp.status_code)
-#     print(resp.json())
-#     print(resp.reason)
+#     bm = BackMarketClient()
+#     #     # with open("dump.json", "w") as f:
+#     #     #     f.write(
+#     #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
+#     #
+#     #     # print(bm.getOrderByID("25923025"))
+#     print(bm.getOrderByID(orderID=26666295))

@@ -9,6 +9,7 @@ from core.marketplace_clients.clientinterface import MarketPlaceClient
 from dotenv import load_dotenv
 
 from core.types.orderStateTypes import newStates
+from services.database_management.app.controller.utils.swd_utils import SWDShippingData
 
 load_dotenv()
 RF_ACCESS_KEY = os.environ["RFTOKEN"]
@@ -35,7 +36,9 @@ class RefurbedClient(MarketPlaceClient):
             listing = orderItem["sku"]
             quantity = 1
             price = orderItem["settlement_total_charged"]
+            item_id = orderItem["item_id"]
             productItem = {
+                "external_orderline_id": item_id,
                 "skuType": "reference",
                 "sku": listing,
                 "amount": quantity,
@@ -103,6 +106,7 @@ class RefurbedClient(MarketPlaceClient):
                 items += adapterItem
         return items
 
+
     @staticmethod
     def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
         trackingData = {"id": order["item_id"],
@@ -111,6 +115,19 @@ class RefurbedClient(MarketPlaceClient):
                         "item_identifier": item["serialnumber"][0]}
 
         return trackingData
+
+    # @staticmethod
+    # def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+    #     """
+    #     TODO: Serial number
+    #     """
+    #     trackingData = {"id": shipping_data.item_id,
+    #                     "state": "SHIPPED",
+    #                     "parcel_tracking_url": shipping_data.tracking_url,
+    #                     "item_identifier": shipping_data.serial_numbers[0]
+    #                     }
+    #
+    #     return trackingData
 
     def __getAuthHeader(self):
         return {"Authorization": self.key}
@@ -177,14 +194,15 @@ class RefurbedClient(MarketPlaceClient):
 
     def getOrderByID(self, orderID):
         print(f"INFO: Sending request to RF")
-
-        resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
-                             headers=self.__getAuthHeader(), data=json.dumps({"id": str(orderID)}))
+        payload = {
+                "id": str(orderID)
+        }
+        resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/GetOrder",
+                             headers=self.__getAuthHeader(), data=json.dumps(payload))
 
         if resp.status_code != 200:
             raise GenericAPIException(resp.reason)
-
-        return resp.json()
+        return resp.json()["order"]
 
     def getOrdersByState(self, state: RFtypes.OrderStates):
 
@@ -212,6 +230,9 @@ class RefurbedClient(MarketPlaceClient):
         newState = self.__getMarketPlaceState(state)
         for orderline in order[self.itemKeyName]:
             order_id = str(self.getOrderID(order))
+            """
+            Accept by item_id
+            """
             item_id = orderline["id"]
             body = self.__getBodyForUpdateRequestByState(order=order,
                                                          orderline=orderline,
@@ -241,6 +262,6 @@ class RefurbedClient(MarketPlaceClient):
                              data=json.dumps(body))
         return resp
 
-
-# rf = RefurbedClient(key=keys["RF"]["token"])
-# print(rf.updateStateOfOrder(rf.getOrdersByState("NEW")[0]))
+#
+# rf = RefurbedClient()
+# print(rf.getOrderByID(5643190))
