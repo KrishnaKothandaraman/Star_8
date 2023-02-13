@@ -36,7 +36,7 @@ class RefurbedClient(MarketPlaceClient):
             listing = orderItem["sku"]
             quantity = 1
             price = orderItem["settlement_total_charged"]
-            item_id = orderItem["item_id"]
+            item_id = orderItem["id"]
             productItem = {
                 "external_orderline_id": item_id,
                 "skuType": "reference",
@@ -106,28 +106,18 @@ class RefurbedClient(MarketPlaceClient):
                 items += adapterItem
         return items
 
-
     @staticmethod
-    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
-        trackingData = {"id": order["item_id"],
+    def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+        trackingData = {"id": shipping_data.item_id,
                         "state": "SHIPPED",
-                        "parcel_tracking_url": swdRespBody["shipping"][0]["tracking_url"],
-                        "item_identifier": item["serialnumber"][0]}
+                        "parcel_tracking_url": shipping_data.tracking_url,
+                        "item_identifier": shipping_data.serial_number
+                        }
+
+        if shipping_data.is_multi_sku:
+            del trackingData["item_identifier"]
 
         return trackingData
-
-    # @staticmethod
-    # def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
-    #     """
-    #     TODO: Serial number
-    #     """
-    #     trackingData = {"id": shipping_data.item_id,
-    #                     "state": "SHIPPED",
-    #                     "parcel_tracking_url": shipping_data.tracking_url,
-    #                     "item_identifier": shipping_data.serial_numbers[0]
-    #                     }
-    #
-    #     return trackingData
 
     def __getAuthHeader(self):
         return {"Authorization": self.key}
