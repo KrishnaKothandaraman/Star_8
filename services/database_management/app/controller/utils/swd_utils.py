@@ -4,9 +4,11 @@ import json
 import random
 import string
 import time
+from dataclasses import dataclass
+
 import requests
 import os
-from typing import Tuple
+from typing import Tuple, List
 from dotenv import load_dotenv
 
 from core.custom_exceptions.general_exceptions import GenericAPIException
@@ -19,6 +21,18 @@ SWD_SHOPKEY = os.environ["SWDSHOPKEY"]
 SWD_SHOPID = os.environ["SWDSHOPID"]
 APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 SWD_API_URL = "https://api1.shopwedo.com/api"
+
+
+@dataclass
+class SWDShippingData:
+    order_id: str
+    item_id: str
+    sku: str
+    tracking_number: str
+    tracking_url: str
+    shipper: str
+    serial_number: str
+    is_multi_sku: bool
 
 
 # utility function for swd authentication
@@ -46,7 +60,7 @@ def generateSWDAuthJson():
     }
 
 
-def getSWDCreateOrderBody(formattedOrder: dict, items: []):
+def getSWDCreateOrderBody(formattedOrder: dict, items: List):
     """Returns body for swd create order request from formatted order"""
     return {
         "external_order_id": str(formattedOrder["order_id"]),
@@ -123,3 +137,5 @@ def performSWDGetOrder(orderID: str) -> requests.Response:
 def performAuthTest() -> requests.Response:
     data = {"auth": json.dumps(generateSWDAuthJson())}
     return requests.post(url=f"{SWD_API_URL}/authTest", data=data)
+
+# print(performSWDGetOrder("26666295").json())
