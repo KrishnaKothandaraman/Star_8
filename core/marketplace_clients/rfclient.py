@@ -107,17 +107,25 @@ class RefurbedClient(MarketPlaceClient):
         return items
 
     @staticmethod
-    def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
-        trackingData = {"id": shipping_data.item_id,
+    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
+        trackingData = {"id": order["item_id"],
                         "state": "SHIPPED",
-                        "parcel_tracking_url": shipping_data.tracking_url,
-                        "item_identifier": shipping_data.serial_number
-                        }
-
-        if shipping_data.is_multi_sku:
-            del trackingData["item_identifier"]
+                        "parcel_tracking_url": swdRespBody["shipping"][0]["tracking_url"],
+                        "item_identifier": item["serialnumber"][0]}
 
         return trackingData
+    # @staticmethod
+    # def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+    #     trackingData = {"id": shipping_data.item_id,
+    #                     "state": "SHIPPED",
+    #                     "parcel_tracking_url": shipping_data.tracking_url,
+    #                     "item_identifier": shipping_data.serial_number
+    #                     }
+    #
+    #     if shipping_data.is_multi_sku:
+    #         del trackingData["item_identifier"]
+    #
+    #     return trackingData
 
     def __getAuthHeader(self):
         return {"Authorization": self.key}
