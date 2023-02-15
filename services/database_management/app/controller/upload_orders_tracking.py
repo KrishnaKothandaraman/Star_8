@@ -61,12 +61,9 @@ def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) 
             except IndexError:
                 print(f"{orderID} was done using old API")
                 continue
-        print(shippingDataForOrderList)
         for shipping_data in shippingDataForOrderList:
             trackingData = Client.getBodyForUpdateStateToShippedRequest(shipping_data=shipping_data)
-            print(trackingData)
             resp = Client.MakeUpdateOrderStateByOrderIDRequest(shipping_data.order_id, trackingData)
-            print(resp.status_code)
             if resp.status_code != 200:
                 print(f"Update tracking info for {shipping_data.order_id} failed. {resp.reason}")
                 print(resp.json())
