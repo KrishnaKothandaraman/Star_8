@@ -105,38 +105,21 @@ class BackMarketClient(MarketPlaceClient):
         return items
 
     @staticmethod
-    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
-        trackingData = {"order_id": order["order_id"], "new_state": 3,
-                        "tracking_number": swdRespBody["shipping"][0]["code"],
-                        "tracking_url": swdRespBody["shipping"][0]["tracking_url"], "imei": "",
-                        "serial_number": item["serialnumber"][0],
-                        "shipper": swdRespBody["shipping"][0]["provider"].split("express")[0]}
+    def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+        trackingData = {"order_id": shipping_data.order_id,
+                        "sku": shipping_data.sku,
+                        "new_state": 3,
+                        "tracking_number": shipping_data.tracking_number,
+                        "tracking_url": shipping_data.tracking_url,
+                        "shipper": shipping_data.shipper}
 
-        if len(item["serialnumber"]) == 15:
-            trackingData["imei"] = item["serialnumber"][0]
-        else:
-            del trackingData["imei"]
+        if not shipping_data.is_multi_sku:
+            if len(shipping_data.serial_number) == 15:
+                trackingData["imei"] = shipping_data.serial_number
+            else:
+                trackingData["serial_number"] = shipping_data.serial_number
 
         return trackingData
-
-    # @staticmethod
-    # def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
-    #     trackingData = {"order_id": shipping_data.order_id,
-    #                     "sku": shipping_data.sku,
-    #                     "new_state": 3,
-    #                     "tracking_number": shipping_data.tracking_number,
-    #                     "tracking_url": shipping_data.tracking_url,
-    #                     "shipper": shipping_data.shipper}
-    #
-    #     if len(shipping_data.serial_numbers) == 1:
-    #         if len(shipping_data.serial_numbers[0]) == 15:
-    #             trackingData["imei"] = shipping_data.serial_numbers[0]
-    #         else:
-    #             trackingData["serial_number"] = shipping_data.serial_numbers[0]
-    #
-    #     return trackingData
-
-
 
     def __getAuthHeader(self):
         return {"Authorization": f"Basic {self.key}"}
@@ -239,6 +222,7 @@ class BackMarketClient(MarketPlaceClient):
                                                          state=newState) if not body else body
             resp = self.MakeUpdateOrderStateByOrderIDRequest(orderID=str(order_id),
                                                              body=body)
+            body = None
             if resp.status_code != 200:
                 print(f"ERROR for {order_id} {sku}. "
                       f"Manully check in. Updated Failed: Code: {resp.status_code}, Resp: {resp.json()}")
@@ -263,12 +247,11 @@ class BackMarketClient(MarketPlaceClient):
                              data=body)
         return resp
 
-
-# if __name__ == "__main__":
-#     bm = BackMarketClient()
-#     #     # with open("dump.json", "w") as f:
-#     #     #     f.write(
-#     #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
-#     #
-#     #     # print(bm.getOrderByID("25923025"))
-#     print(bm.getOrderByID(orderID=26666295))
+if __name__ == "__main__":
+    bm = BackMarketClient()
+    #     # with open("dump.json", "w") as f:
+    #     #     f.write(
+    #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
+    #
+    #     # print(bm.getOrderByID("25923025"))
+    print(bm.getOrderByID(orderID=26755515))

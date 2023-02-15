@@ -59,7 +59,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
             SWDItemsBody = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelNames)
             createOrderResp = swd_utils.performSWDCreateOrder(formattedOrder, SWDItemsBody)
             if createOrderResp.status_code != 201:
-                print(f"Created order failed due to {createOrderResp.reason}")
+                print(f"Created order failed: {createOrderResp.json()}")
                 general_utils.updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
                                                             "Note": f"Shop we do add order failed. Error code: {createOrderResp.status_code}"
                                                                     f",Error message: {createOrderResp.reason}"
@@ -91,12 +91,11 @@ def swdAddOrder():
             newOrder = vendor.getOrderByID(orderID=singleOrderID)
             numNewOrders += processNewOrders([newOrder], vendor)
         else:
-            BMNewOrders = BMClient.getOrdersByState(state=1)
-            numNewOrders += processNewOrders(BMNewOrders, BMClient)
-
             RFNewOrders = RFClient.getOrdersByState(state="NEW")
             numNewOrders += processNewOrders(RFNewOrders, RFClient)
 
+            BMNewOrders = BMClient.getOrdersByState(state=1)
+            numNewOrders += processNewOrders(BMNewOrders, BMClient)
         return make_response(jsonify({"type": "success",
                                       "message": f"Updated {numNewOrders} new orders"
                                       }),

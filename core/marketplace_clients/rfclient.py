@@ -106,26 +106,27 @@ class RefurbedClient(MarketPlaceClient):
                 items += adapterItem
         return items
 
-    @staticmethod
-    def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
-        trackingData = {"id": order["item_id"],
-                        "state": "SHIPPED",
-                        "parcel_tracking_url": swdRespBody["shipping"][0]["tracking_url"],
-                        "item_identifier": item["serialnumber"][0]}
-
-        return trackingData
     # @staticmethod
-    # def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
-    #     trackingData = {"id": shipping_data.item_id,
+    # def getBodyForUpdateStateToShippedRequest(order, swdRespBody: dict, item: dict) -> dict:
+    #     trackingData = {"id": order["item_id"],
     #                     "state": "SHIPPED",
-    #                     "parcel_tracking_url": shipping_data.tracking_url,
-    #                     "item_identifier": shipping_data.serial_number
-    #                     }
-    #
-    #     if shipping_data.is_multi_sku:
-    #         del trackingData["item_identifier"]
+    #                     "parcel_tracking_url": swdRespBody["shipping"][0]["tracking_url"],
+    #                     "item_identifier": item["serialnumber"][0]}
     #
     #     return trackingData
+
+    @staticmethod
+    def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+        trackingData = {"id": shipping_data.item_id,
+                        "state": "SHIPPED",
+                        "parcel_tracking_url": shipping_data.tracking_url,
+                        "item_identifier": shipping_data.serial_number
+                        }
+
+        if shipping_data.is_multi_sku:
+            del trackingData["item_identifier"]
+
+        return trackingData
 
     def __getAuthHeader(self):
         return {"Authorization": self.key}
@@ -193,7 +194,7 @@ class RefurbedClient(MarketPlaceClient):
     def getOrderByID(self, orderID):
         print(f"INFO: Sending request to RF")
         payload = {
-                "id": str(orderID)
+            "id": str(orderID)
         }
         resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/GetOrder",
                              headers=self.__getAuthHeader(), data=json.dumps(payload))
@@ -237,6 +238,7 @@ class RefurbedClient(MarketPlaceClient):
                                                          state=newState) if not body else body
             resp = self.MakeUpdateOrderStateByOrderIDRequest(orderID=str(order_id),
                                                              body=body)
+            body = None
             if resp.status_code != 200:
                 print(f"ERROR for {order_id} {item_id}. "
                       f"Manully check in. Updated Failed: Code: {resp.status_code}, Reason: {resp.reason}")
@@ -260,6 +262,5 @@ class RefurbedClient(MarketPlaceClient):
                              data=json.dumps(body))
         return resp
 
-#
 # rf = RefurbedClient()
-# print(rf.getOrderByID(5643190))
+# print(rf.getOrderByID(5665681))

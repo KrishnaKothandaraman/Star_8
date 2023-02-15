@@ -8,6 +8,7 @@ class TestRefurbedClient(unittest.TestCase):
         Client = RefurbedClient()
         orderItems = [
             {
+                "id": "12345754",
                 "sku": "002346BR",
                 "settlement_total_charged": "775.12"
             },
@@ -18,6 +19,7 @@ class TestRefurbedClient(unittest.TestCase):
                                                                        swdModelNames=swdModelNames)
         expectedValue = [
             {
+                "external_orderline_id": "12345754",
                 "skuType": "reference",
                 "sku": "002346BR",
                 "amount": 1,
@@ -36,10 +38,12 @@ class TestRefurbedClient(unittest.TestCase):
         Client = RefurbedClient()
         orderItems = [
             {
+                "id": "102934879",
                 "sku": "002346BR",
                 "settlement_total_charged": "775.12"
             },
             {
+                "id": "102934279",
                 "sku": "002336SL",
                 "settlement_total_charged": "750.12"
             },
@@ -50,12 +54,14 @@ class TestRefurbedClient(unittest.TestCase):
                                                                    swdModelNames=swdModelNames)
         expectedBody = [
             {
+                "external_orderline_id": "102934879",
                 "skuType": "reference",
                 "sku": "002346BR",
                 "amount": 1,
                 "price": "775.12"
             },
             {
+                "external_orderline_id": "102934279",
                 "skuType": "reference",
                 "sku": "002336SL",
                 "amount": 1,
@@ -80,10 +86,12 @@ class TestRefurbedClient(unittest.TestCase):
         Client = RefurbedClient()
         orderItems = [
             {
+                "id": "102934879",
                 "sku": "002346BR",
                 "settlement_total_charged": "775.12"
             },
             {
+                "id": "109934879",
                 "sku": "002346BR",
                 "settlement_total_charged": "775.12"
             },
@@ -92,12 +100,14 @@ class TestRefurbedClient(unittest.TestCase):
 
         expectedValue = [
             {
+                "external_orderline_id": "102934879",
                 "skuType": "reference",
                 "sku": "002346BR",
                 "amount": 1,
                 "price": "775.12"
             },
             {
+                "external_orderline_id": "109934879",
                 "skuType": "reference",
                 "sku": "002346BR",
                 "amount": 1,
@@ -120,3 +130,17 @@ class TestRefurbedClient(unittest.TestCase):
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)
         self.assertCountEqual(expectedValue, actualValue)
+
+    @unittest.skip("Yet to implement")
+    def test_getBodyForUpdateStateToShippedRequestWithOneItem(self):
+        Client = RefurbedClient()
+        items = {'sku': 182647, 'name': 'iPhone 13 Mini 128GB White EUS (Silver)', 'amount': 1,
+                 'external_orderline_id': False,
+                 'external_product_id': False, 'external_product_variant_id': False, 'comment': False,
+                 'lot_number': False,
+                 'tht_date': False, 'picked': True,
+                 'product': {'stockId': '182647', 'barcode': '002661SL', 'reference': '002661SL',
+                             'name': 'iPhone 13 Mini 128GB White EUS (Silver)', 'shopId': '11025',
+                             'location': 'BIN001455_C4000487', 'level': '9', 'atp': '9', 'productsStockItemsInBox': '1',
+                             'productsStockRegisterSerialNumber': '0', 'productsStockBreakable': '0'},
+                 'serialnumber': ['352922180292491']}

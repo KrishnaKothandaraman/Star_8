@@ -9,7 +9,6 @@ def writeToCSV(cols, data, fileObj: TextIO):
     writer = csv.writer(fileObj)
     writer.writerow(cols)
     writer.writerows(data)
-
     print("Written to CSV!")
 
 
@@ -18,6 +17,7 @@ def returnRollingAverage(oldAverage, oldCount, newPrice):
 
 
 def makeDirAndWriteToFile(dirPath: str, filePath: str, data):
+    print(dirPath)
     os.makedirs(dirPath, exist_ok=True)
     with open(filePath, 'w') as f:
         import json

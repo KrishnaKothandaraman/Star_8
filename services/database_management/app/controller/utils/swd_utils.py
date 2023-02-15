@@ -138,4 +138,4 @@ def performAuthTest() -> requests.Response:
     data = {"auth": json.dumps(generateSWDAuthJson())}
     return requests.post(url=f"{SWD_API_URL}/authTest", data=data)
 
-# print(performSWDGetOrder("26666295").json())
+# print(performSWDGetOrder("5665681").json())
