@@ -247,11 +247,11 @@ class BackMarketClient(MarketPlaceClient):
                              data=body)
         return resp
 
-if __name__ == "__main__":
-    bm = BackMarketClient()
-    #     # with open("dump.json", "w") as f:
-    #     #     f.write(
-    #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
-    #
-    #     # print(bm.getOrderByID("25923025"))
-    print(bm.getOrderByID(orderID=26755515))
+# if __name__ == "__main__":
+#     bm = BackMarketClient()
+#     #     # with open("dump.json", "w") as f:
+#     #     #     f.write(
+#     #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
+#     #
+#     #     # print(bm.getOrderByID("25923025"))
+#     print(bm.getOrderByID(orderID=26755515))
