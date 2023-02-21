@@ -26,15 +26,14 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
     updateCounter = 0
     for order in orders:
         formattedOrder = MarketClient.convertOrderToSheetColumns(order)[0]
-        remoteCheckCode = swd_utils.performRemoteCheck(country=formattedOrder["shipping_country_code"],
-                                                       postal_code=formattedOrder["shipping_postal_code"],
-                                                       shipper=formattedOrder["shipper"].split(" ")[0])
+        # remoteCheckCode = swd_utils.performRemoteCheck(country=formattedOrder["shipping_country_code"],
+        #                                                postal_code=formattedOrder["shipping_postal_code"],
+        #                                                shipper=formattedOrder["shipper"].split(" ")[0])
         stockExists, swdModelName, stockAmount = "", "", ""
 
         formattedOrder["shipper"] = general_utils.getShipperName(price=float(formattedOrder["total_charged"]),
                                                                  chosenShipperName=formattedOrder["shipper"],
-                                                                 country_code=formattedOrder["shipping_country_code"],
-                                                                 remoteCheckCode=remoteCheckCode)
+                                                                 country_code=formattedOrder["shipping_country_code"])
         print(
             f"For {formattedOrder['order_id']} to country {formattedOrder['shipping_country_code']}, set shipper to {formattedOrder['shipper']}")
 
