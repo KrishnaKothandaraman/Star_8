@@ -1,5 +1,8 @@
 import datetime
 import os
+
+import werkzeug
+
 from core.custom_exceptions.general_exceptions import IncorrectAuthTokenException
 from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitleException
 import time
@@ -133,9 +136,6 @@ def updateGoogleSheet():
     try:
         key = request.headers.get('auth-token')
 
-        body = request.get_json()
-        numberOfDaysToUpdate = body["days"] if "days" in body else 0
-
         if not key or key != APP_AUTH_TOKEN:
             raise IncorrectAuthTokenException("Incorrect auth token provided")
 
@@ -143,6 +143,9 @@ def updateGoogleSheet():
         service = GoogleSheetsService()
         RFAPIInstance = RefurbedClient()
         BMAPIInstance = BackMarketClient()
+
+        body = request.get_json()
+        numberOfDaysToUpdate = body["days"] if "days" in body else 0
 
         recordsUpdated = performUpdateExistingOrdersUpdate(service=service,
                                                            BMAPIInstance=BMAPIInstance,
