@@ -3,7 +3,7 @@ import json
 import os
 import requests
 import core.types.refurbedAPI as RFtypes
-from typing import Optional, List
+from typing import Optional, List, Dict, Tuple
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from dotenv import load_dotenv
@@ -262,5 +262,19 @@ class RefurbedClient(MarketPlaceClient):
                              data=json.dumps(body))
         return resp
 
+    def getListing(self, listingFilter: Tuple[str, str]):
+        print(f"Getting listing from RF")
+        url = "https://api.refurbed.com/refb.merchant.v1.OfferService/GetOffer"
+
+        payload = {
+            "identifier": {
+                listingFilter[0]: str(listingFilter[1])
+            },
+        }
+        print(f"Sending {payload=}")
+        return requests.post(url=url,
+                             headers=self.__getAuthHeader(),
+                             data=json.dumps(payload))
+
 # rf = RefurbedClient()
-# print(rf.getOrderByID(5665681))
+# print(rf.getOrderByID(123))
