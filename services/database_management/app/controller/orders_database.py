@@ -1,5 +1,6 @@
 import datetime
 import os
+from typing import Optional
 
 import werkzeug
 
@@ -23,13 +24,16 @@ APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 
 
 def performAddNewOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackMarketClient,
-                              RFAPIInstance: RefurbedClient, days: int):
+                              RFAPIInstance: RefurbedClient, days: int, single_order_id: Optional[str],
+                              single_order_id_vendor: Optional[str]):
     """
     Appends new orders to the bottom of the sheet
     :param service: SheetsService
     :param BMAPIInstance: MarketPlaceClient
     :param RFAPIInstance: MarketPlaceClient
     :param days: Number of days back from today to pull the new records for
+    :param single_order_id: Adds this particular order id: If this is set to not None, all other params are ignored
+    :param single_order_id_vendor: Vendor for single order id
     :return:
     """
     googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME,
@@ -37,8 +41,17 @@ def performAddNewOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackM
     googleSheetOrderIDs = {item[0] for item in googleSheetOrderIDs[1:] if len(item) > 0}
 
     nowDateTime = datetime.datetime.now()
-    RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(days), end=nowDateTime)
-    BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(days), end=nowDateTime)
+    RFNewOrders = []
+    BMnewOrders = []
+    if not single_order_id:
+        RFNewOrders = RFAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(days), end=nowDateTime)
+        BMnewOrders = BMAPIInstance.getOrdersBetweenDates(start=nowDateTime - datetime.timedelta(days), end=nowDateTime)
+
+    else:
+        if single_order_id_vendor == "Backmarket":
+            BMnewOrders.append(BMAPIInstance.getOrderByID(orderID=single_order_id, normalizeFields=True))
+        elif single_order_id_vendor == "Refurbed":
+            RFNewOrders.append(RFAPIInstance.getOrderByID(orderID=single_order_id))
 
     ordersToBeAdded = {
         "BackMarket": [],
@@ -147,13 +160,25 @@ def updateGoogleSheet():
         body = request.get_json()
         numberOfDaysToUpdate = body["days"] if "days" in body else 0
 
-        recordsUpdated = performUpdateExistingOrdersUpdate(service=service,
-                                                           BMAPIInstance=BMAPIInstance,
-                                                           RFAPIInstance=RFAPIInstance)
-        newRecordsAdded = performAddNewOrdersUpdate(service=service,
-                                                    BMAPIInstance=BMAPIInstance,
-                                                    RFAPIInstance=RFAPIInstance,
-                                                    days=numberOfDaysToUpdate)
+        if "single_order_id" in body:
+            recordsUpdated = 1
+            newRecordsAdded = performAddNewOrdersUpdate(service=service,
+                                                        BMAPIInstance=BMAPIInstance,
+                                                        RFAPIInstance=RFAPIInstance,
+                                                        days=numberOfDaysToUpdate,
+                                                        single_order_id=body["single_order_id"],
+                                                        single_order_id_vendor=body["vendor"])
+        else:
+
+            recordsUpdated = performUpdateExistingOrdersUpdate(service=service,
+                                                               BMAPIInstance=BMAPIInstance,
+                                                               RFAPIInstance=RFAPIInstance)
+            newRecordsAdded = performAddNewOrdersUpdate(service=service,
+                                                        BMAPIInstance=BMAPIInstance,
+                                                        RFAPIInstance=RFAPIInstance,
+                                                        days=numberOfDaysToUpdate,
+                                                        single_order_id=None,
+                                                        single_order_id_vendor=None)
 
         end = time.time()
 

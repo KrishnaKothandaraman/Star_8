@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 import requests
 import core.types.backmarketAPI as BMTypes
 from pandas import to_datetime as to_datetime
@@ -141,6 +141,17 @@ class BackMarketClient(MarketPlaceClient):
         else:
             raise NotImplementedError
 
+    @staticmethod
+    def __normalize_fields(order) -> dict:
+        order["state"] = BMTypes.BackMarketOrderStates.getStrFromEnum(val=int(order["state"]))
+        order["shipping_address"]["gender"] = BMTypes.BackMarketGender.getStrFromEnum(
+            val=int(order["shipping_address"]["gender"]))
+        order["billing_address"]["gender"] = BMTypes.BackMarketGender.getStrFromEnum(
+            val=int(order["billing_address"]["gender"]))
+        for orderline in order["orderlines"]:
+            orderline["state"] = BMTypes.BackMarketOrderlinesStates.getStrFromEnum(val=int(orderline["state"]))
+        return order
+
     def __crawlURL(self, url, endDate: Optional[str]):
         data = []
         orderCounter = 0
@@ -192,7 +203,7 @@ class BackMarketClient(MarketPlaceClient):
         print(f"INFO: Sending request to BM")
         return self.__crawlURL(f"https://www.backmarket.fr/ws/orders?date_modification={start}", None)
 
-    def getOrderByID(self, orderID):
+    def getOrderByID(self, orderID, normalizeFields = None):
         print(f"INFO: Sending request to BM")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
 
@@ -201,7 +212,10 @@ class BackMarketClient(MarketPlaceClient):
         if resp.status_code != 200:
             raise GenericAPIException(resp.reason)
 
-        return resp.json()
+        if not normalizeFields:
+            return resp.json()
+        else:
+            return self.__normalize_fields(resp.json())
 
     def getOrdersByState(self, state):
 
@@ -247,6 +261,15 @@ class BackMarketClient(MarketPlaceClient):
                              data=body)
         return resp
 
+    def getListing(self, listingFilter: Tuple[str, str]):
+        print(f"Getting listing with {listingFilter}")
+
+        url = f"https://www.backmarket.fr/ws/listings/detail/?{listingFilter[0]}={listingFilter[1]}"
+        resp = requests.get(url=url,
+                            headers=self.__getAuthHeader())
+        return resp
+
+#
 # if __name__ == "__main__":
 #     bm = BackMarketClient()
 #     #     # with open("dump.json", "w") as f:
@@ -254,4 +277,4 @@ class BackMarketClient(MarketPlaceClient):
 #     #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
 #     #
 #     #     # print(bm.getOrderByID("25923025"))
-#     print(bm.getOrderByID(orderID=26755515))
+#     print(bm.getOrderByID(orderID=26940864))
