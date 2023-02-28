@@ -5,6 +5,37 @@ from services.database_management.app.controller.utils.swd_utils import SWDShipp
 
 
 class TestBackmarketClient(unittest.TestCase):
+    def test_generateItemsBodyForSWDCreateOrderRequestWithSamsung(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["samsung Galaxy S10e 128GB Prism Black EUS (Shiny)"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002694",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
     def test_generateItemsBodyForSWDCreateOrderRequestWithIPad(self):
         Client = BackMarketClient()
         orderItems = [
