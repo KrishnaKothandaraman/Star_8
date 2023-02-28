@@ -71,6 +71,13 @@ class BackMarketClient(MarketPlaceClient):
                     "amount": quantity,
                     "price": 2
                 }]
+            elif "EUS" in swdModelName and "S10e" in swdModelName:
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002694",
+                    "amount": quantity,
+                    "price": 2
+                }]
             elif "EUS" in swdModelName and any(
                     substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
                 adapterItem = [

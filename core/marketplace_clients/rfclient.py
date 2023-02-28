@@ -64,6 +64,13 @@ class RefurbedClient(MarketPlaceClient):
                     "amount": quantity,
                     "price": 2
                 }]
+            elif "EUS" in swdModelName and "S10e" in swdModelName:
+                adapterItem = [{
+                    "skuType": "reference",
+                    "sku": "002694",
+                    "amount": quantity,
+                    "price": 2
+                }]
             elif "EUS" in swdModelName and any(
                     substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
                 adapterItem = [{
