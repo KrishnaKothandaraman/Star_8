@@ -4,7 +4,7 @@ from typing import Optional
 
 import werkzeug
 
-from core.custom_exceptions.general_exceptions import IncorrectAuthTokenException
+from core.custom_exceptions.general_exceptions import IncorrectAuthTokenException, GenericAPIException
 from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitleException
 import time
 import traceback
@@ -188,6 +188,11 @@ def updateGoogleSheet():
                                       "message": f"Added {newRecordsAdded} records! Updated {recordsUpdated} records!"
                                       }),
                              200)
+    except GenericAPIException:
+        return make_response(jsonify({"type": "fail",
+                                      "message": "Order id not found in marketplace"
+                                      }),
+                             400)
     except googleapiclient.errors.HttpError as e:
         return make_response(jsonify({"type": "Google API fail",
                                       "message": e.reason
