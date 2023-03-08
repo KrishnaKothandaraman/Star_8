@@ -1,6 +1,8 @@
 import datetime
 import json
 import os
+
+import aiohttp
 import requests
 import core.types.refurbedAPI as RFtypes
 from typing import Optional, List, Dict, Tuple
@@ -130,8 +132,8 @@ class RefurbedClient(MarketPlaceClient):
                         "item_identifier": shipping_data.serial_number
                         }
 
-        if shipping_data.is_multi_sku:
-            del trackingData["item_identifier"]
+        # if shipping_data.is_multi_sku:
+        #     del trackingData["item_identifier"]
 
         return trackingData
 
@@ -269,7 +271,7 @@ class RefurbedClient(MarketPlaceClient):
                              data=json.dumps(body))
         return resp
 
-    def getListing(self, listingFilter: Tuple[str, str]):
+    async def getListing(self, listingFilter: Tuple[str, str], clientSession: aiohttp.ClientSession):
         print(f"Getting listing from RF")
         url = "https://api.refurbed.com/refb.merchant.v1.OfferService/GetOffer"
 
@@ -278,10 +280,11 @@ class RefurbedClient(MarketPlaceClient):
                 listingFilter[0]: str(listingFilter[1])
             },
         }
-        print(f"Sending {payload=}")
-        return requests.post(url=url,
-                             headers=self.__getAuthHeader(),
-                             data=json.dumps(payload))
+        resp = clientSession.post(url=url,
+                                  headers=self.__getAuthHeader(),
+                                  data=json.dumps(payload))
+        print("RF done")
+        return await resp
 
-# rf = RefurbedClient()
-# print(rf.getOrderByID(123))
+rf = RefurbedClient()
+print(rf.getOrderByID(5834396))
