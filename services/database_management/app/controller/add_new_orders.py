@@ -3,24 +3,28 @@ import traceback
 import werkzeug.exceptions
 import services.database_management.app.controller.utils.swd_utils as swd_utils
 import services.database_management.app.controller.utils.general_utils as general_utils
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Dict, Literal
 from flask import make_response, jsonify, request
 from core.custom_exceptions.general_exceptions import GenericAPIException, IncorrectAuthTokenException
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
 from dotenv import load_dotenv
+from flask_api import status
 
 load_dotenv()
 
 APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 
+sku_pair = Dict[Literal["old_sku", "new_sku"], str]
 
-def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
+
+def processNewOrders(orders: List, MarketClient: MarketPlaceClient, replaced_sku: Optional[sku_pair] = None) -> int:
     """
     Performs logic to loop through orders and create SWD orders if stock exists
     :param orders: List of orders
     :param MarketClient: Marketplace that the orders are from
+    :param replaced_sku: A pair of old_sku new_sku values
     :return:
     """
     updateCounter = 0
@@ -29,7 +33,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
         # remoteCheckCode = swd_utils.performRemoteCheck(country=formattedOrder["shipping_country_code"],
         #                                                postal_code=formattedOrder["shipping_postal_code"],
         #                                                shipper=formattedOrder["shipper"].split(" ")[0])
-        stockExists, swdModelName, stockAmount = "", "", ""
+        stockExists, swdModelName, stockAmount = True, "", ""
 
         formattedOrder["shipper"] = general_utils.getShipperName(price=float(formattedOrder["total_charged"]),
                                                                  chosenShipperName=formattedOrder["shipper"],
@@ -57,6 +61,7 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
             print(f"All stock exists for order {swdModelName}")
             SWDItemsBody = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelNames)
             createOrderResp = swd_utils.performSWDCreateOrder(formattedOrder, SWDItemsBody)
+            print(f"Create order resp code: {createOrderResp.status_code}")
             if createOrderResp.status_code != 201:
                 print(f"Created order failed: {createOrderResp.json()}")
                 general_utils.updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
@@ -65,8 +70,49 @@ def processNewOrders(orders: List, MarketClient: MarketPlaceClient) -> int:
                                                             }]
                                                      )
             else:
+                if replaced_sku:
+                    MarketClient.updateSkuOfOrder(order, replaced_sku["new_sku"], replaced_sku["old_sku"])
                 updateCounter += MarketClient.updateStateOfOrder(order, "NEW", None)
     return updateCounter
+
+
+def swdAddManualOrder():
+    try:
+        body = request.json
+        marketPlace = body["marketplace"]
+        orderID = body["order_id"]
+        oldSku = body["old_sku"]
+        newSku = body["new_sku"]
+
+        if marketPlace not in ("Refurbed", "Backmarket"):
+            raise GenericAPIException(f"Invalid marketplace '{marketPlace}'. Marketplace must be either Refurbed,"
+                                      f"Backmarket.")
+
+        vendor = BackMarketClient() if marketPlace == "Backmarket" else RefurbedClient()
+
+        order = vendor.getOrderByID(orderID, normalizeFields=True)
+        vendor.updateSkuOfOrder(order, oldSku, newSku)
+        processNewOrders([order], vendor, {"old_sku": oldSku, "new_sku": newSku})
+        return make_response(jsonify({"type": "Success",
+                                      "message": f"Order updated"
+                                      }),
+                             status.HTTP_200_OK)
+
+    except KeyError as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": f"Key '{e.args[0]}' missing in request"
+                                      }),
+                             status.HTTP_400_BAD_REQUEST)
+    except GenericAPIException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": e.args[0]
+                                      }),
+                             status.HTTP_400_BAD_REQUEST)
+    except werkzeug.exceptions.BadRequest:
+        return make_response(jsonify({"type": "fail",
+                                      "message": "JSON Body required in request"
+                                      }),
+                             status.HTTP_400_BAD_REQUEST)
 
 
 def swdAddOrder():
@@ -99,7 +145,11 @@ def swdAddOrder():
                                       "message": f"Updated {numNewOrders} new orders"
                                       }),
                              200)
-
+    except GenericAPIException as e:
+        return make_response(jsonify({"type": "fail",
+                                      "message": "Order id not found in marketplace"
+                                      }),
+                             400)
     except IncorrectAuthTokenException as e:
         return make_response(jsonify({"type": "fail",
                                       "message": e.args[0]

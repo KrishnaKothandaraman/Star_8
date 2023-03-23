@@ -1,6 +1,9 @@
+import asyncio
 import datetime
 import json
 from typing import Optional, List, Tuple, Dict
+
+import aiohttp
 import requests
 import core.types.backmarketAPI as BMTypes
 from pandas import to_datetime as to_datetime
@@ -210,7 +213,7 @@ class BackMarketClient(MarketPlaceClient):
         print(f"INFO: Sending request to BM")
         return self.__crawlURL(f"https://www.backmarket.fr/ws/orders?date_modification={start}", None)
 
-    def getOrderByID(self, orderID, normalizeFields = None):
+    def getOrderByID(self, orderID, normalizeFields=None):
         print(f"INFO: Sending request to BM")
         url = f"https://www.backmarket.fr/ws/orders/{orderID}"
 
@@ -268,14 +271,20 @@ class BackMarketClient(MarketPlaceClient):
                              data=body)
         return resp
 
-    def getListing(self, listingFilter: Tuple[str, str]):
+    async def getListing(self, listingFilter: Tuple[str, str], clientSession: aiohttp.ClientSession):
         print(f"Getting listing with {listingFilter}")
 
-        url = f"https://www.backmarket.fr/ws/listings/detail/?{listingFilter[0]}={listingFilter[1]}"
-        resp = requests.get(url=url,
-                            headers=self.__getAuthHeader())
-        return resp
+        url = f"https://www.backmarket.fr/ws/listings/detail?{listingFilter[0]}={listingFilter[1]}"
+        resp = clientSession.get(url=url,
+                                 headers=self.__getAuthHeader())
+        print("BM Done!")
+        return await resp
 
+async def test_listing(sku):
+    bm = BackMarketClient()
+    async with aiohttp.ClientSession() as clientSes:
+        resp = await bm.getListing(sku, clientSes)
+        print(await resp.json())
 #
 # if __name__ == "__main__":
 #     bm = BackMarketClient()
@@ -284,4 +293,4 @@ class BackMarketClient(MarketPlaceClient):
 #     #     #         json.dumps(bm.getOrdersByState(state=1), indent=3))
 #     #
 #     #     # print(bm.getOrderByID("25923025"))
-#     print(bm.getOrderByID(orderID=26940864))
+#     asyncio.run(test_listing(("listing_id", "2826949")))

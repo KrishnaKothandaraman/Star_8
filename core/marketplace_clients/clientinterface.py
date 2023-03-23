@@ -122,3 +122,10 @@ class MarketPlaceClient:
     @staticmethod
     def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
         raise NotImplementedError
+
+    def updateSkuOfOrder(self, order, old_sku, new_sku):
+        for order_line in order[self.itemKeyName]:
+            if order_line[self.skuFieldName] == old_sku:
+                order_line[self.skuFieldName] = new_sku
+                break
+        return order
