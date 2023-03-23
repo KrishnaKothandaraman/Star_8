@@ -200,7 +200,7 @@ class RefurbedClient(MarketPlaceClient):
         print(f"Refurbed: {len(orders)}")
         return orders
 
-    def getOrderByID(self, orderID):
+    def getOrderByID(self, orderID, normalizeFields=None):
         print(f"INFO: Sending request to RF")
         payload = {
             "id": str(orderID)
@@ -285,6 +285,24 @@ class RefurbedClient(MarketPlaceClient):
                                   data=json.dumps(payload))
         print("RF done")
         return await resp
+
+    def updateListing(self, sku: str, updates: List[Tuple]):
+        print(f"Updating RF Listing for {sku}")
+        url = "https://api.refurbed.com/refb.merchant.v1.OfferService/UpdateOffer"
+        payload = {
+            "identifier": {
+                "sku": sku
+            },
+        }
+        for update in updates:
+            payload[update[0]] = update[1]
+
+        print(f"Sending payload {payload}")
+        resp = requests.post(url=url,
+                             headers=self.__getAuthHeader(),
+                             data=json.dumps(payload))
+        return resp
+
 
 # rf = RefurbedClient()
 # print(rf.getOrderByID(5834396))
