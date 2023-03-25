@@ -66,7 +66,7 @@ class RefurbedClient(MarketPlaceClient):
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and "S10e" in swdModelName:
+            elif "EUS" in swdModelName and "Samsung" in swdModelName:
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002694",
