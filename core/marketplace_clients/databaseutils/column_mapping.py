@@ -107,7 +107,7 @@ columnMapping = {
         },
         "company": {
             "BackMarket": "shipping_address/company",
-            "Refurbed": "shipping_address/company",
+            "Refurbed": "invoice_address/company_name",
         },
         "currency": {
             "BackMarket": "currency",
@@ -177,6 +177,14 @@ columnMapping = {
             "BackMarket": "expected_dispatch_date",
             "Refurbed": None
         },
+        "discount": {
+            "BackMarket": None,
+            "Refurbed": "total_discount"
+        },
+        "vat_number": {
+            "BackMarket": None,
+            "Refurbed": "invoice_address/company_vatin"
+        }
     },
     "items": {
         "item_id": {
