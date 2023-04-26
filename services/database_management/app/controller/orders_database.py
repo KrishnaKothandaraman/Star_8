@@ -14,6 +14,7 @@ from flask import request, make_response, jsonify
 from core.google_services.googleSheetsService import GoogleSheetsService
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.rfclient import RefurbedClient
+from services.database_management.app.controller.utils.inventory_utils import CellData, FieldType
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
@@ -29,8 +30,8 @@ def performAddNewOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackM
     """
     Appends new orders to the bottom of the sheet
     :param service: SheetsService
-    :param BMAPIInstance: MarketPlaceClient
-    :param RFAPIInstance: MarketPlaceClient
+    :param BMAPIInstance: BackMarketClient
+    :param RFAPIInstance: RefurbedClient
     :param days: Number of days back from today to pull the new records for
     :param single_order_id: Adds this particular order id: If this is set to not None, all other params are ignored
     :param single_order_id_vendor: Vendor for single order id
@@ -73,9 +74,9 @@ def performAddNewOrdersUpdate(service: GoogleSheetsService, BMAPIInstance: BackM
     flattenedOrderList = []
 
     flattenedOrderList += [list(d.values()) for d in ordersToBeAdded["Refurbed"] + ordersToBeAdded["BackMarket"]]
-
-    service.appendValuesToBottomOfSheet(data=flattenedOrderList, sheetTitle=SPREADSHEET_NAME,
-                                        documentID=SPREADSHEET_ID)
+    if flattenedOrderList:
+        service.appendValuesToBottomOfSheet(data=flattenedOrderList, sheetTitle=SPREADSHEET_NAME,
+                                            documentID=SPREADSHEET_ID)
     return len(flattenedOrderList)
 
 
@@ -84,8 +85,8 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
     """
     Updates details orders that were placed in the last 2 days
     :param service: SheetsService
-    :param BMAPIInstance: MarketPlaceClient
-    :param RFAPIInstance: MarketPlaceClient
+    :param BMAPIInstance: BackMarketClient
+    :param RFAPIInstance: RefurbedClient
     :return:
     """
     googleSheetOrderIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID, sheetName=SPREADSHEET_NAME,
@@ -133,14 +134,15 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
     # contains flattened order list to upload to sheets
     flattenedOrderList = []
     flattenedRowNumberList = []
-    flattenedOrderList += [list(d["data"].values()) for d in
+    flattenedOrderList += [[CellData(value=val, field_type=FieldType.normal, field_values=[])
+                            for val in d.values()] for d in
                            ordersToBeUpdated["BackMarket"] + ordersToBeUpdated["Refurbed"]]
     flattenedRowNumberList += [d["row"] for d in ordersToBeUpdated["BackMarket"] + ordersToBeUpdated["Refurbed"]]
-
-    service.updateEntireRowValuesFromRowNumber(sheetTitle=SPREADSHEET_NAME,
-                                               documentID=SPREADSHEET_ID,
-                                               dataList=flattenedOrderList,
-                                               rowNumberList=flattenedRowNumberList)
+    if flattenedOrderList:
+        service.updateEntireRowValuesFromRowNumber(sheetTitle=SPREADSHEET_NAME,
+                                                   documentID=SPREADSHEET_ID,
+                                                   dataList=flattenedOrderList,
+                                                   rowNumberList=flattenedRowNumberList)
 
     return len(flattenedOrderList)
 
