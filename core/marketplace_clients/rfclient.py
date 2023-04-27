@@ -1,14 +1,13 @@
 import datetime
 import json
 import os
-
+from typing import Optional, List, Dict, Tuple
 import aiohttp
 import requests
+from dotenv import load_dotenv
 import core.types.refurbedAPI as RFtypes
-from typing import Optional, List, Dict, Tuple
 from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
-from dotenv import load_dotenv
 
 from core.types.orderStateTypes import newStates
 from services.database_management.app.controller.utils.swd_utils import SWDShippingData
@@ -20,6 +19,11 @@ RF_ACCESS_KEY = os.environ["RFTOKEN"]
 class RefurbedClient(MarketPlaceClient):
     key: str
     vendor: str
+    URL_PREFIX: str = "https://api.refurbed.com/refb.merchant.v1."
+    ORDERSERVICE_URL_PREFIX: str = URL_PREFIX + "OrderService"
+    ITEMSERVICE_URL_PREFIX: str = URL_PREFIX + "OrderItemService"
+    OFFERSERVICE_URL_PREFIX: str = URL_PREFIX + "OfferService"
+    MARKET_OFFERSERVICE_URL_PREFIX: str = URL_PREFIX + "MarketOfferService"
 
     def __init__(self):
         super().__init__()
@@ -34,56 +38,56 @@ class RefurbedClient(MarketPlaceClient):
     @staticmethod
     def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelNames: List[str]) -> List[dict]:
         items = []
-        for swdModelName, orderItem in list(zip(swdModelNames, orderItems)):
-            listing = orderItem["sku"]
+        for swd_model_name, order_item in list(zip(swdModelNames, orderItems)):
+            listing = order_item["sku"]
             quantity = 1
-            price = orderItem["settlement_total_charged"]
-            item_id = orderItem["id"]
-            productItem = {
+            price = order_item["settlement_total_charged"]
+            item_id = order_item["id"]
+            product_item = {
                 "external_orderline_id": item_id,
                 "skuType": "reference",
                 "sku": listing,
                 "amount": quantity,
                 "price": price
             }
-            adapterItem = [{
+            adapter_item = [{
                 "skuType": "reference",
                 "sku": "002204",
                 "amount": quantity,
                 "price": 2
             }]
-            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
-                adapterItem = [{
+            if "EUS" in swd_model_name and any(substr in swd_model_name for substr in ("iPad 9", "iPad 8")):
+                adapter_item = [{
                     "skuType": "reference",
                     "sku": "002479",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and "iPad 7" in swdModelName:
-                adapterItem = [{
+            elif "EUS" in swd_model_name and "iPad 7" in swd_model_name:
+                adapter_item = [{
                     "skuType": "reference",
                     "sku": "002351",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and "Samsung" in swdModelName:
-                adapterItem = [{
+            elif "EUS" in swd_model_name and "Samsung" in swd_model_name:
+                adapter_item = [{
                     "skuType": "reference",
                     "sku": "002694",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
-                adapterItem = [{
+            elif "EUS" in swd_model_name and any(
+                    substr in swd_model_name for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+                adapter_item = [{
                     "skuType": "reference",
                     "sku": "002478",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
-                adapterItem = [
+            elif "EUS" in swd_model_name and any(
+                    substr in swd_model_name for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
+                adapter_item = [
                     {
                         "skuType": "reference",
                         "sku": "002331",
@@ -91,9 +95,9 @@ class RefurbedClient(MarketPlaceClient):
                         "price": 2
                     },
                 ]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPhone 11", "iPhone XR")):
-                adapterItem = [
+            elif "EUS" in swd_model_name and any(
+                    substr in swd_model_name for substr in ("iPhone 11", "iPhone XR")):
+                adapter_item = [
                     {
                         "skuType": "reference",
                         "sku": "002204",
@@ -107,12 +111,12 @@ class RefurbedClient(MarketPlaceClient):
                     #     "price": 2
                     # }
                 ]
-            elif "EUS" not in swdModelName:
-                adapterItem = None
+            elif "EUS" not in swd_model_name:
+                adapter_item = None
 
-            items.append(productItem)
-            if adapterItem:
-                items += adapterItem
+            items.append(product_item)
+            if adapter_item:
+                items += adapter_item
         return items
 
     # @staticmethod
@@ -126,16 +130,16 @@ class RefurbedClient(MarketPlaceClient):
 
     @staticmethod
     def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
-        trackingData = {"id": shipping_data.item_id,
-                        "state": "SHIPPED",
-                        "parcel_tracking_url": shipping_data.tracking_url,
-                        "item_identifier": shipping_data.serial_number
-                        }
+        tracking_data = {"id": shipping_data.item_id,
+                         "state": "SHIPPED",
+                         "parcel_tracking_url": shipping_data.tracking_url,
+                         "item_identifier": shipping_data.serial_number
+                         }
 
         # if shipping_data.is_multi_sku:
         #     del trackingData["item_identifier"]
 
-        return trackingData
+        return tracking_data
 
     def __getAuthHeader(self):
         return {"Authorization": self.key}
@@ -154,10 +158,10 @@ class RefurbedClient(MarketPlaceClient):
                 "state": state
             }
 
-    def __crawlURL(self, url, payload):
+    def __crawlURL(self, url, payload, keyName: str):
         orders = []
         while True:
-            print(f"Making Request")
+            print("Making Request")
 
             resp = requests.post(url=url,
                                  headers=self.__getAuthHeader(), data=json.dumps(payload))
@@ -166,9 +170,9 @@ class RefurbedClient(MarketPlaceClient):
                 raise GenericAPIException(resp.reason)
 
             resp_json = resp.json()
-            orders += resp_json["orders"]
+            orders += resp_json[keyName]
             if resp_json["has_more"]:
-                starting_after = resp_json['orders'][-1]['id']
+                starting_after = resp_json[keyName][-1]['id']
                 payload["pagination"] = {"starting_after": str(starting_after)}
             else:
                 break
@@ -185,7 +189,7 @@ class RefurbedClient(MarketPlaceClient):
         end = self.convertDateTimeToString(end, "T23:59:59.9999Z")
 
         print(start, end)
-        print(f"INFO: Sending request to RF")
+        print("INFO: Sending request to RF")
         payload = {
             "filter": {
                 "released_at": {
@@ -194,18 +198,18 @@ class RefurbedClient(MarketPlaceClient):
                 }
             },
         }
-        orders = self.__crawlURL(url="https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders",
-                                 payload=payload)
+        orders = self.__crawlURL(url=f"{self.ORDERSERVICE_URL_PREFIX}/ListOrders",
+                                 payload=payload, keyName="orders")
 
         print(f"Refurbed: {len(orders)}")
         return orders
 
     def getOrderByID(self, orderID, normalizeFields=None):
-        print(f"INFO: Sending request to RF")
+        print("INFO: Sending request to RF")
         payload = {
             "id": str(orderID)
         }
-        resp = requests.post(url="https://api.refurbed.com/refb.merchant.v1.OrderService/GetOrder",
+        resp = requests.post(url=f"{self.ORDERSERVICE_URL_PREFIX}/GetOrder",
                              headers=self.__getAuthHeader(), data=json.dumps(payload))
 
         if resp.status_code != 200:
@@ -215,7 +219,7 @@ class RefurbedClient(MarketPlaceClient):
     def getOrdersByState(self, state: RFtypes.OrderStates):
 
         print(f"INFO: Sending request to RF for {state=}")
-        url = f"https://api.refurbed.com/refb.merchant.v1.OrderService/ListOrders"
+        url = f"{self.ORDERSERVICE_URL_PREFIX}/ListOrders"
         payload = {
             "filter": {
                 "state": {
@@ -226,7 +230,7 @@ class RefurbedClient(MarketPlaceClient):
             }
         }
 
-        orders = self.__crawlURL(url=url, payload=payload)
+        orders = self.__crawlURL(url=url, payload=payload, keyName="orders")
 
         print(f"Refurbed: {len(orders)}")
 
@@ -234,37 +238,37 @@ class RefurbedClient(MarketPlaceClient):
 
     def updateStateOfOrder(self, order, state: newStates, body):
         errors = 0
-        updateCounter = 0
-        newState = self.__getMarketPlaceState(state)
+        update_counter = 0
+        new_state = self.__getMarketPlaceState(state)
         for orderline in order[self.itemKeyName]:
             order_id = str(self.getOrderID(order))
-            """
-            Accept by item_id
-            """
+            # Accept by item_id
             item_id = orderline["id"]
             body = self.__getBodyForUpdateRequestByState(order=order,
                                                          orderline=orderline,
-                                                         state=newState) if not body else body
+                                                         state=new_state) if not body else body
             resp = self.MakeUpdateOrderStateByOrderIDRequest(orderID=str(order_id),
                                                              body=body)
             body = None
             if resp.status_code != 200:
                 print(f"ERROR for {order_id} {item_id}. "
-                      f"Manully check in. Updated Failed: Code: {resp.status_code}, Reason: {resp.reason}")
+                      f"Manully check in. Updated Failed: Code: {resp.status_code}"
+                      f", Reason: {resp.reason}")
                 errors += 1
             else:
-                updateCounter += 1
-                print(f"Updated state of {order_id}, {item_id} to {newState}. Return code {resp.status_code}")
+                update_counter += 1
+                print(f"Updated state of {order_id}, {item_id} to {new_state}."
+                      f"Return code {resp.status_code}")
 
         if errors:
-            raise GenericAPIException(f"Update state to RF had errors")
+            raise GenericAPIException("Update state to RF had errors")
 
-        return updateCounter
+        return update_counter
 
     def MakeUpdateOrderStateByOrderIDRequest(self, orderID, body) -> requests.Response:
 
         print(f"RF: Updating state of {orderID}")
-        url = f"https://api.refurbed.com/refb.merchant.v1.OrderItemService/UpdateOrderItemState"
+        url = f"{self.ITEMSERVICE_URL_PREFIX}/UpdateOrderItemState"
         print(f"Sending {body=}")
         resp = requests.post(url=url,
                              headers=self.__getAuthHeader(),
@@ -273,7 +277,7 @@ class RefurbedClient(MarketPlaceClient):
 
     async def getListing(self, listingFilter: Tuple[str, str], clientSession: aiohttp.ClientSession):
         print(f"Getting listing from RF")
-        url = "https://api.refurbed.com/refb.merchant.v1.OfferService/GetOffer"
+        url = f"{self.OFFERSERVICE_URL_PREFIX}/GetOffer"
 
         payload = {
             "identifier": {
@@ -286,9 +290,9 @@ class RefurbedClient(MarketPlaceClient):
         print("RF done")
         return await resp
 
-    def updateListing(self, sku: str, updates: List[Tuple]):
+    def update_market_offer(self, sku: str, updates: List[Tuple]):
         print(f"Updating RF Listing for {sku}")
-        url = "https://api.refurbed.com/refb.merchant.v1.OfferService/UpdateOffer"
+        url = f"{self.MARKET_OFFERSERVICE_URL_PREFIX}/UpdateOffer"
         payload = {
             "identifier": {
                 "sku": sku
@@ -303,6 +307,17 @@ class RefurbedClient(MarketPlaceClient):
                              data=json.dumps(payload))
         return resp
 
+    def get_list_of_all_offers(self):
+        """
+        Method to get all offers from Refurbed
+        :return: List of offers
+        """
+        url = f"{self.OFFERSERVICE_URL_PREFIX}/ListOffers"
+        payload = {}
+        offers = self.__crawlURL(url=url, payload=payload, keyName="offers")
+        return offers
 
-# rf = RefurbedClient()
-# print(rf.getOrderByID(5834396))
+    # rf = RefurbedClient()
+# with open("offers.json", "r") as f:
+#     # print length of offers
+#     print(len(json.load(f)))
