@@ -7,6 +7,7 @@ import apiclient
 from googleapiclient.http import MediaIoBaseDownload
 from core.config.googleServiceConfiguration import GOOGLE_DRIVE_SERVICE_NAME, GOOGLE_SHEETS_SERVICE_NAME
 from core.google_services.googleAppServiceFactory import GoogleAppServiceFactory
+from services.database_management.app.controller.utils.inventory_utils import CellData, FieldType
 
 GOOGLE_SHEETS_STARTING_CELL = "A15"
 
@@ -105,6 +106,9 @@ class GoogleSheetsService:
         if type(val) == int:
             return str(val)
 
+        elif isinstance(val, CellData):
+            return str(val.value)
+
         return str(val) if val else ""
 
     def getSheetIDFromSheetName(self, documentID: str, sheetTitle: str) -> str:
@@ -126,14 +130,16 @@ class GoogleSheetsService:
 
         return sheetID
 
-    def updateEntireRowValuesFromRowNumber(self, rowNumberList: List[int], dataList: List[List], documentID: str,
-                                           sheetTitle: str):
+    def updateEntireRowValuesFromRowNumber(self, rowNumberList: List[int], dataList: List[List[CellData]],
+                                           documentID: str,
+                                           sheetTitle: str, columnIndex: int = 0):
         """
         Overwrites the entire rowNumber with data
         :param sheetTitle: Sheet title to update
         :param documentID: Document ID of spreadsheet
         :param rowNumberList: 0 indexed row number from google sheets
         :param dataList: New data to be written to rowNumber
+        :param columnIndex: Column index to start updating from. Default = 0 meaning update entire row
         :return: None
         """
 
@@ -143,19 +149,33 @@ class GoogleSheetsService:
             "fields": "*",
             "rows": [{
                 "values": [{
-                    "userEnteredValue": {
-                        "stringValue": self.getValueAsString(value)
-                    }
-                } for value in dataList[i]]
+                               "userEnteredValue": {
+                                   "stringValue": self.getValueAsString(value)
+                               }
+                           } if value.field_type == FieldType.normal
+                           else
+                           {
+                               "userEnteredValue": {
+                                   "stringValue": self.getValueAsString(value)
+                               },
+                               "dataValidation": {
+                                   "condition": {
+                                       "type": "ONE_OF_LIST",
+                                       "values": [
+                                           {"userEnteredValue": val} for val in value.field_values]
+                                   },
+                                   "strict": True
+                               }
+                           }
+                           for value in dataList[i]]
             }],
             "start": {
                 "sheetId": sheetID,
                 "rowIndex": rowNumber,
-                "columnIndex": 0
+                "columnIndex": columnIndex
             }
         }
         } for i, rowNumber in enumerate(rowNumberList)]
-
         return self.executeBatchRequest(requests=requests, documentId=documentID)
 
     def appendValuesToBottomOfSheet(self, data: List[List], documentID, sheetTitle):
@@ -197,23 +217,23 @@ class GoogleSheetsService:
         except errors.HttpError as e:
             print(e)
 
-    def getEntireColumnData(self, sheetID, sheetName, column):
+    def getEntireColumnData(self, sheetID, sheetName, column, column2: str = ""):
         """
         Returns the column data for an entire column
         :param sheetID: Spreadsheet ID
         :param sheetName: Name of the particular sheet within the spreadsheet
         :param column: Column name from A1 notation (see docs: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/get#:~:text=are%20specified%20using-,A1%20notation,-.%20You%20can%20define)
+        :param column2: Second column name for range of columns. Default is empty
         :return: List of strings representing the data in the column
         """
         response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID,
-                                                                  range=f"{sheetName}!{column}:{column}").execute()
+                                                                  range=f"{sheetName}!{column}:{column if not column2 else column2}").execute()
         return [item for item in response["values"]] if "values" in response else []
 
     def getHeaderFromGoogleSheet(self, sheetID, sheetName):
         response = self.sheetsService.spreadsheets().values().get(spreadsheetId=sheetID,
                                                                   range=f"{sheetName}!1:1").execute()
         return [item for item in response["values"]]
-
 
 # a = GoogleSheetsService()
 # print(a.updateEntireRowValuesFromRowNumber(sheetTitle="tester",
