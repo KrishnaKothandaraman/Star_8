@@ -52,7 +52,7 @@ class BackMarketClient(MarketPlaceClient):
                 "amount": quantity,
                 "price": 2
             }]
-            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")):
+            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8") and listing not in ("002779SH", "002780SH")):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002479",
