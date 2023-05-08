@@ -56,7 +56,7 @@ class RefurbedClient(MarketPlaceClient):
                 "amount": quantity,
                 "price": 2
             }]
-            if "EUS" in swd_model_name and any(substr in swd_model_name for substr in ("iPad 9", "iPad 8") and listing not in ("002779SH", "002780SH")):
+            if "EUS" in swd_model_name and any(substr in swd_model_name for substr in ("iPad 9", "iPad 8")) and listing not in ("002779SH", "002780SH"):
                 adapter_item = [{
                     "skuType": "reference",
                     "sku": "002479",
