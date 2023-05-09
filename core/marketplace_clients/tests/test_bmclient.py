@@ -15,7 +15,7 @@ class TestBackmarketClient(unittest.TestCase):
                 "price": "775.12"
             },
         ]
-        swdModelNames = ["samsung Galaxy S10e 128GB Prism Black EUS (Shiny)"]
+        swdModelNames = ["Samsung Galaxy S10e 128GB Prism Black EUS (Shiny)"]
 
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)
@@ -36,7 +36,7 @@ class TestBackmarketClient(unittest.TestCase):
         ]
         self.assertCountEqual(expectedValue, actualValue)
 
-    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad(self):
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPadPro(self):
         Client = BackMarketClient()
         orderItems = [
             {
@@ -61,6 +61,68 @@ class TestBackmarketClient(unittest.TestCase):
             {
                 "skuType": "reference",
                 "sku": "002478",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad6(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS iPad 6"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002351",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad7(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS iPad 7"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002351",
                 "amount": 1,
                 "price": 2
             }
@@ -183,17 +245,17 @@ class TestBackmarketClient(unittest.TestCase):
     def test_getBodyForUpdateStateToShippedRequestWithSingleIMEI(self):
         c = BackMarketClient()
         shipping_data = SWDShippingData(
-                    order_id="26601104",
-                    item_id="26601198",
-                    sku="002378SH",
-                    serial_number="353018114641439",
-                    shipper="DHL",
-                    tracking_number="129493023",
-                    tracking_url='https://www.backmarket.fr/tracking/order?u=161400'
-                                                                    '8&orderNo=EU26387758&zip=75011&lang=fr&use_origin'
-                                                                    '_courier=true',
-                    is_multi_sku=False
-                )
+            order_id="26601104",
+            item_id="26601198",
+            sku="002378SH",
+            serial_number="353018114641439",
+            shipper="DHL",
+            tracking_number="129493023",
+            tracking_url='https://www.backmarket.fr/tracking/order?u=161400'
+                         '8&orderNo=EU26387758&zip=75011&lang=fr&use_origin'
+                         '_courier=true',
+            is_multi_sku=False
+        )
         resp = c.getBodyForUpdateStateToShippedRequest(shipping_data)
         expected_resp = {"order_id": "26601104",
                          "sku": "002378SH",
