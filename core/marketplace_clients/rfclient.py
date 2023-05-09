@@ -63,7 +63,7 @@ class RefurbedClient(MarketPlaceClient):
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swd_model_name and "iPad 7" in swd_model_name:
+            elif "EUS" in swd_model_name and any(substr in swd_model_name for substr in ("iPad 7", "iPad 6")):
                 adapter_item = [{
                     "skuType": "reference",
                     "sku": "002351",

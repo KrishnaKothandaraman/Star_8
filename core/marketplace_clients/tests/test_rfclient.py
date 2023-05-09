@@ -4,7 +4,7 @@ import unittest
 
 class TestRefurbedClient(unittest.TestCase):
 
-    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad(self):
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPadPro(self):
         Client = RefurbedClient()
         orderItems = [
             {
@@ -34,6 +34,66 @@ class TestRefurbedClient(unittest.TestCase):
         ]
         self.assertCountEqual(expectedValue, actualValue)
 
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad6(self):
+        Client = RefurbedClient()
+        orderItems = [
+            {
+                "id": "12345754",
+                "sku": "002346BR",
+                "settlement_total_charged": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS iPad 6"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "12345754",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002351",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad7(self):
+        Client = RefurbedClient()
+        orderItems = [
+            {
+                "id": "12345754",
+                "sku": "002346BR",
+                "settlement_total_charged": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS iPad 7"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "12345754",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002351",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
     def test_generateItemsBodyForSWDCreateOrderRequestWithSamsung(self):
         Client = RefurbedClient()
         orderItems = [
@@ -43,7 +103,7 @@ class TestRefurbedClient(unittest.TestCase):
                 "settlement_total_charged": "775.12"
             }
         ]
-        swdModelNames = ["samsung Galaxy S10e 128GB Prism Black EUS (Shiny)"]
+        swdModelNames = ["Samsung Galaxy S10e 128GB Prism Black EUS (Shiny)"]
 
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)

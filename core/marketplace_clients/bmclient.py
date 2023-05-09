@@ -1,8 +1,5 @@
-import asyncio
 import datetime
-import json
 from typing import Optional, List, Tuple, Dict
-
 import aiohttp
 import requests
 import core.types.backmarketAPI as BMTypes
@@ -11,7 +8,6 @@ from core.custom_exceptions.general_exceptions import GenericAPIException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 import os
 from dotenv import load_dotenv
-
 from core.types.orderStateTypes import newStates
 from services.database_management.app.controller.utils.swd_utils import SWDShippingData
 
@@ -59,7 +55,7 @@ class BackMarketClient(MarketPlaceClient):
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and "iPad 7" in swdModelName:
+            elif "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 7", "iPad 6")):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002351",
