@@ -120,8 +120,6 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
                 continue
             for formattedOrder in formattedOrderList:
                 if f"{formattedOrder['order_id']}_{formattedOrder['item_id']}" == primaryKey:
-                    if order['id'] == "6336563":
-                        print(f"Formatted: {formattedOrder}")
                     ordersToBeUpdated["Refurbed"].append({"data": formattedOrder,
                                                           "row": googleSheetIDS[primaryKey]})
 
