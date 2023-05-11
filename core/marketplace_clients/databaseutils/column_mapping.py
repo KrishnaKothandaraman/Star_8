@@ -157,10 +157,6 @@ columnMapping = {
             "BackMarket": None,
             "Refurbed": "has_invoicable",
         },
-        "tracking_url": {
-            "BackMarket": "tracking_url",
-            "Refurbed": "parcel_tracking_url"
-        },
         "tracking_number": {
             "BackMarket": "tracking_number",
             "Refurbed": None
@@ -198,6 +194,10 @@ columnMapping = {
         "item_identifier": {
             "BackMarket": "imei+serial_number",
             "Refurbed": "item_identifier"
+        },
+        "tracking_url": {
+            "BackMarket": "../tracking_url",
+            "Refurbed": "parcel_tracking_url"
         },
         "item_state": {
             "BackMarket": "state",

@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 from typing import Optional
 
@@ -20,6 +21,8 @@ GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"
 SPREADSHEET_ID = "19OXMfru14WMEI4nja9SCAljnCDrHlw33SHLO77vAmVo"
 SPREADSHEET_NAME = "Combined_Orders"
+TEST_SPREADSHEET_NAME = "tester"
+
 
 APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 
@@ -94,7 +97,7 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
 
     googleSheetItemIDs = service.getEntireColumnData(sheetID=SPREADSHEET_ID,
                                                      sheetName=SPREADSHEET_NAME,
-                                                     column="AP")
+                                                     column="AQ")
 
     googleSheetIDS = {f"{item[0][0]}_{item[1][0]}": idx + 1 for idx, item in
                       enumerate(list(zip(googleSheetOrderIDs[1:], googleSheetItemIDs[1:]))) if
@@ -117,6 +120,8 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
                 continue
             for formattedOrder in formattedOrderList:
                 if f"{formattedOrder['order_id']}_{formattedOrder['item_id']}" == primaryKey:
+                    if order['id'] == "6336563":
+                        print(f"Formatted: {formattedOrder}")
                     ordersToBeUpdated["Refurbed"].append({"data": formattedOrder,
                                                           "row": googleSheetIDS[primaryKey]})
 
@@ -135,7 +140,7 @@ def performUpdateExistingOrdersUpdate(service: GoogleSheetsService, BMAPIInstanc
     flattenedOrderList = []
     flattenedRowNumberList = []
     flattenedOrderList += [[CellData(value=val, field_type=FieldType.normal, field_values=[])
-                            for val in d.values()] for d in
+                            for val in d["data"].values()] for d in
                            ordersToBeUpdated["BackMarket"] + ordersToBeUpdated["Refurbed"]]
     flattenedRowNumberList += [d["row"] for d in ordersToBeUpdated["BackMarket"] + ordersToBeUpdated["Refurbed"]]
     if flattenedOrderList:
@@ -221,6 +226,17 @@ def updateGoogleSheet():
                                       "message": "Contact support. Check server logs"
                                       }),
                              500)
+
+
+# service = GoogleSheetsService()
+# RFAPIInstance = RefurbedClient()
+# BMAPIInstance = BackMarketClient()
+# updates = performUpdateExistingOrdersUpdate(service=service,
+#                                             BMAPIInstance=BMAPIInstance,
+#                                             RFAPIInstance=RFAPIInstance)
+# print(f"{updates=}")
+# with open ("orders_jump.json", "w") as f:
+#     f.write(json.dumps(rf_new))
 
 # service = GoogleSheetsService()
 # RFAPIInstance = RefurbedClient(key=keys["RF"]["token"], itemKeyName="items",
