@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Optional, List, Tuple, Dict
 import aiohttp
 import requests
@@ -48,7 +49,9 @@ class BackMarketClient(MarketPlaceClient):
                 "amount": quantity,
                 "price": 2
             }]
-            if "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 9", "iPad 8")) and listing not in ("002779SH", "002780SH"):
+            if "EUS" in swdModelName and any(
+                    substr in swdModelName for substr in ("iPad 9", "iPad 8")) and listing not in (
+                    "002779SH", "002780SH"):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002479",
@@ -276,11 +279,12 @@ class BackMarketClient(MarketPlaceClient):
         print("BM Done!")
         return await resp
 
-async def test_listing(sku):
-    bm = BackMarketClient()
-    async with aiohttp.ClientSession() as clientSes:
-        resp = await bm.getListing(sku, clientSes)
-        print(await resp.json())
+
+# async def test_listing(sku):
+#     bm = BackMarketClient()
+#     async with aiohttp.ClientSession() as clientSes:
+#         resp = await bm.getListing(sku, clientSes)
+#         print(await resp.json())
 #
 # if __name__ == "__main__":
 #     bm = BackMarketClient()
@@ -290,3 +294,4 @@ async def test_listing(sku):
 #     #
 #     #     # print(bm.getOrderByID("25923025"))
 #     asyncio.run(test_listing(("listing_id", "2826949")))
+

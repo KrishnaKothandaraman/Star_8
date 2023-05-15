@@ -138,7 +138,6 @@ def swdAddOrder():
         else:
             RFNewOrders = RFClient.getOrdersByState(state="NEW")
             numNewOrders += processNewOrders(RFNewOrders, RFClient)
-
             BMNewOrders = BMClient.getOrdersByState(state=1)
             numNewOrders += processNewOrders(BMNewOrders, BMClient)
         return make_response(jsonify({"type": "success",
