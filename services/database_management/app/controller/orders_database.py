@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 from flask_api.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 from core.custom_exceptions.general_exceptions import IncorrectAuthTokenException, GenericAPIException, \
     ResourceExhaustedException
@@ -35,7 +35,7 @@ def get_rf_orders_from_marketplace(RFInstance: RefurbedClient, orderIDs: List[st
 
 def get_update_data_from_orders(new_orders: List[Dict], api_instance: MarketPlaceClient,
                                 googleSheetIDS: Dict[str, int]) -> \
-        List[Dict[str, Dict | int]]:
+        List[Dict[str, Union[Dict, int]]]:
     ordersToBeUpdated = []
     for order in new_orders:
         formattedOrderList = api_instance.convertOrderToSheetColumns(order)
