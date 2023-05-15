@@ -66,7 +66,6 @@ def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) 
             resp = Client.MakeUpdateOrderStateByOrderIDRequest(shipping_data.order_id, trackingData)
             if resp.status_code != 200:
                 print(f"Update tracking info for {shipping_data.order_id} failed. {resp.reason}")
-                print(resp.json())
                 general_utils.updateAppSheetWithRows(rows=[{"order_id": int(shipping_data.order_id),
                                                             "Note": f"Upload tracking info failed. Error code: {resp.status_code}"
                                                                     f",Error json {resp.reason}"

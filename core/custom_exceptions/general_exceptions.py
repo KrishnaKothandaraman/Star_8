@@ -7,3 +7,8 @@ class GenericAPIException(Exception):
 class IncorrectAuthTokenException(Exception):
     def __init__(self, message):
         super().__init__(message)
+
+
+class ResourceExhaustedException(Exception):
+    def __init__(self, message):
+        super().__init__(message)

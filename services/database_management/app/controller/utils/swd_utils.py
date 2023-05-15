@@ -103,11 +103,9 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps({"reference": sku})}
     stockCheckResp = requests.post(url=f"{SWD_API_URL}/getStock", data=formData)
-
     if stockCheckResp.status_code != 200:
         print(f"Stock check failed for {sku} Reason: {stockCheckResp.reason}")
         return False, "", ""
-
     # loop through response and check master_atp field which is stock for this listing
     for listing, data in stockCheckResp.json().items():
         if data["reference2"] == sku:
@@ -137,5 +135,3 @@ def performSWDGetOrder(orderID: str) -> requests.Response:
 def performAuthTest() -> requests.Response:
     data = {"auth": json.dumps(generateSWDAuthJson())}
     return requests.post(url=f"{SWD_API_URL}/authTest", data=data)
-
-print(performSWDGetOrder("5715418").json())
