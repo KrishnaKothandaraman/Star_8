@@ -99,6 +99,14 @@ def performRemoteCheck(country: str, postal_code: str, shipper: str) -> int:
     return remoteCheckResp.json()["code"]
 
 
+def getStockFromItems(items, sku):
+    for listing, data in items:
+        if data["reference2"] == sku:
+            if int(data["atp"]) > 0:
+                return True, data["description"], data["atp"]
+    return False, "", ""
+
+
 def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps({"reference": sku})}
@@ -106,15 +114,7 @@ def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     if stockCheckResp.status_code != 200:
         print(f"Stock check failed for {sku} Reason: {stockCheckResp.reason}")
         return False, "", ""
-    # loop through response and check master_atp field which is stock for this listing
-    for listing, data in stockCheckResp.json().items():
-        if data["reference2"] == sku:
-            if int(data["master_atp"]) > 0:
-                return True, data["description"], data["master_atp"]
-            else:
-                break
-
-    return False, "", ""
+    return getStockFromItems(stockCheckResp.json().items(), sku)
 
 
 def performSWDCreateOrder(formattedOrder, items) -> requests.Response:
@@ -135,3 +135,6 @@ def performSWDGetOrder(orderID: str) -> requests.Response:
 def performAuthTest() -> requests.Response:
     data = {"auth": json.dumps(generateSWDAuthJson())}
     return requests.post(url=f"{SWD_API_URL}/authTest", data=data)
+
+
+performSWDStockCheck("002475SL")
