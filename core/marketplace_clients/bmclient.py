@@ -31,6 +31,8 @@ class BackMarketClient(MarketPlaceClient):
     @staticmethod
     def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelNames: List[str]) -> List[dict]:
         items = []
+        swdModelNames = list(map(lambda x: x.lower(), swdModelNames))
+
         for swdModelName, orderItem in list(zip(swdModelNames, orderItems)):
             listing = orderItem["listing"]
             quantity = orderItem["quantity"]
@@ -49,39 +51,38 @@ class BackMarketClient(MarketPlaceClient):
                 "amount": quantity,
                 "price": 2
             }]
-            if "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPad 9", "iPad 8")) and listing not in (
-                    "002779SH", "002780SH"):
+            if "eus" in swdModelName and any(
+                    substr.lower() in swdModelName for substr in ("iPad 9", "iPad 8")):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002479",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and any(substr in swdModelName for substr in ("iPad 7", "iPad 6")):
+            elif "eus" in swdModelName and any(substr.lower() in swdModelName for substr in ("iPad 7", "iPad 6")):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002351",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+            elif "eus" in swdModelName and any(
+                    substr.lower() in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002478",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and "Samsung" in swdModelName:
+            elif "eus" in swdModelName and "samsung" in swdModelName:
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002694",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swdModelName and any(
-                    substr in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
+            elif "eus" in swdModelName and any(
+                    substr.lower() in swdModelName for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
                 adapterItem = [
                     {
                         "skuType": "reference",
@@ -98,14 +99,14 @@ class BackMarketClient(MarketPlaceClient):
                         "amount": quantity,
                         "price": 2
                     }]
-            elif "EUS" in swdModelName:
+            elif "eus" in swdModelName:
                 adapterItem = {
                     "skuType": "reference",
                     "sku": "002204",
                     "amount": quantity,
                     "price": 2
                 },
-            elif "EUS" not in swdModelName:
+            elif "eus" not in swdModelName:
                 adapterItem = None
 
             items.append(productItem)

@@ -36,6 +36,37 @@ class TestBackmarketClient(unittest.TestCase):
         ]
         self.assertCountEqual(expectedValue, actualValue)
 
+    def test_generateItemsBodyForSWDCreateOrderRequestWithSamsungLowerCase(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["samsung galaxy S10e 128GB Prism Black EUS (Shiny)"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002694",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
     def test_generateItemsBodyForSWDCreateOrderRequestWithIPadPro(self):
         Client = BackMarketClient()
         orderItems = [
@@ -47,6 +78,37 @@ class TestBackmarketClient(unittest.TestCase):
             },
         ]
         swdModelNames = ["EUS iPad Pro"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002478",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPadProLowerCase(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS ipad pro"]
 
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)
@@ -98,6 +160,37 @@ class TestBackmarketClient(unittest.TestCase):
         ]
         self.assertCountEqual(expectedValue, actualValue)
 
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad6LowerCase(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS ipad 6"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002351",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
     def test_generateItemsBodyForSWDCreateOrderRequestWithIPad7(self):
         Client = BackMarketClient()
         orderItems = [
@@ -109,6 +202,37 @@ class TestBackmarketClient(unittest.TestCase):
             },
         ]
         swdModelNames = ["EUS iPad 7"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5266756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002351",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
+    def test_generateItemsBodyForSWDCreateOrderRequestWithIPad7LowerCaseName(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5266756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+        ]
+        swdModelNames = ["EUS ipad 7"]
 
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)
@@ -146,6 +270,62 @@ class TestBackmarketClient(unittest.TestCase):
             },
         ]
         swdModelNames = ["EUS iPhone 11", "EUS iPhone 12"]
+
+        actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
+                                                                       swdModelNames=swdModelNames)
+        expectedValue = [
+            {
+                "external_orderline_id": "5263756",
+                "skuType": "reference",
+                "sku": "002346BR",
+                "amount": 1,
+                "price": "775.12"
+            },
+            {
+                "external_orderline_id": "6253764",
+                "skuType": "reference",
+                "sku": "002336SL",
+                "amount": 1,
+                "price": "750.12"
+            },
+            {
+                "skuType": "reference",
+                "sku": "002331",
+                "amount": 1,
+                "price": 2
+            },
+            {
+                "skuType": "reference",
+                "sku": "002204",
+                "amount": 1,
+                "price": 2
+            },
+            {
+                "skuType": "barcode",
+                "sku": "SKU_136666",
+                "amount": 1,
+                "price": 2
+            }
+        ]
+        self.assertCountEqual(expectedValue, actualValue)
+
+    def test_generateItemsBodyForSWDCreateOrderRequestWithDifferentCablesLowerCase(self):
+        Client = BackMarketClient()
+        orderItems = [
+            {
+                "id": "5263756",
+                "listing": "002346BR",
+                "quantity": 1,
+                "price": "775.12"
+            },
+            {
+                "id": "6253764",
+                "listing": "002336SL",
+                "quantity": 1,
+                "price": "750.12"
+            },
+        ]
+        swdModelNames = ["EUS iphone 11", "EUS iphone 12"]
 
         actualValue = Client.generateItemsBodyForSWDCreateOrderRequest(orderItems=orderItems,
                                                                        swdModelNames=swdModelNames)

@@ -38,6 +38,7 @@ class RefurbedClient(MarketPlaceClient):
     @staticmethod
     def generateItemsBodyForSWDCreateOrderRequest(orderItems: List[dict], swdModelNames: List[str]) -> List[dict]:
         items = []
+        swdModelNames = list(map(lambda x: x.lower(), swdModelNames))
         for swd_model_name, order_item in list(zip(swdModelNames, orderItems)):
             listing = order_item["sku"]
             quantity = 1
@@ -56,39 +57,38 @@ class RefurbedClient(MarketPlaceClient):
                 "amount": quantity,
                 "price": 2
             }]
-            if "EUS" in swd_model_name and any(
-                    substr in swd_model_name for substr in ("iPad 9", "iPad 8")) and listing not in (
-            "002779SH", "002780SH"):
+            if "eus" in swd_model_name and any(
+                    substr.lower() in swd_model_name for substr in ("iPad 9", "iPad 8")):
                 adapter_item = [{
                     "skuType": "reference",
                     "sku": "002479",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swd_model_name and any(substr in swd_model_name for substr in ("iPad 7", "iPad 6")):
+            elif "eus" in swd_model_name and any(substr.lower() in swd_model_name for substr in ("iPad 7", "iPad 6")):
                 adapter_item = [{
                     "skuType": "reference",
                     "sku": "002351",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swd_model_name and "Samsung" in swd_model_name:
+            elif "eus" in swd_model_name and "samsung" in swd_model_name:
                 adapter_item = [{
                     "skuType": "reference",
                     "sku": "002694",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swd_model_name and any(
-                    substr in swd_model_name for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+            elif "eus" in swd_model_name and any(
+                    substr.lower() in swd_model_name for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
                 adapter_item = [{
                     "skuType": "reference",
                     "sku": "002478",
                     "amount": quantity,
                     "price": 2
                 }]
-            elif "EUS" in swd_model_name and any(
-                    substr in swd_model_name for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
+            elif "eus" in swd_model_name and any(
+                    substr.lower() in swd_model_name for substr in ("iPhone 12", "iPhone 13", "iPhone 14")):
                 adapter_item = [
                     {
                         "skuType": "reference",
@@ -97,8 +97,8 @@ class RefurbedClient(MarketPlaceClient):
                         "price": 2
                     },
                 ]
-            elif "EUS" in swd_model_name and any(
-                    substr in swd_model_name for substr in ("iPhone 11", "iPhone XR")):
+            elif "eus" in swd_model_name and any(
+                    substr.lower() in swd_model_name for substr in ("iPhone 11", "iPhone XR")):
                 adapter_item = [
                     {
                         "skuType": "reference",
@@ -113,7 +113,7 @@ class RefurbedClient(MarketPlaceClient):
                     #     "price": 2
                     # }
                 ]
-            elif "EUS" not in swd_model_name:
+            elif "eus" not in swd_model_name:
                 adapter_item = None
 
             items.append(product_item)
