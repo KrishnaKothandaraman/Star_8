@@ -4,7 +4,7 @@ RF_FORMATTED_DATA = [{'data': {'order_id': '6335576', 'Market': 'Refurbed', 'sta
                                'shipping_address1': 'Laan van avant-garde', 'shipping_address2': '458',
                                'shipping_postal_code': '3059 VA', 'shipping_country_code': 'NL',
                                'shipping_city': 'Rotterdam',
-                               'shipping_phone_number': '+31620362424', 'billing_first_name': '',
+                               'shipping_phone_number': '+31620362424', 'billing_first_name': 'Arthur',
                                'billing_last_name': 'Kluin',
                                'billing_gender': 'MALE', 'billing_address1': 'Laan van avant-garde',
                                'billing_address2': '458',
@@ -33,7 +33,7 @@ RF_FORMATTED_DATA = [{'data': {'order_id': '6335576', 'Market': 'Refurbed', 'sta
                                   'shipping_address2': '35', 'shipping_postal_code': '47012',
                                   'shipping_country_code': 'IT',
                                   'shipping_city': 'Civitella di Romagna', 'shipping_phone_number': '3510098704',
-                                  'billing_first_name': '', 'billing_last_name': 'Diaw', 'billing_gender': 'MALE',
+                                  'billing_first_name': 'Alioune', 'billing_last_name': 'Diaw', 'billing_gender': 'MALE',
                                   'billing_address1': 'Viale Roma', 'billing_address2': '35',
                                   'billing_postal_code': '47012',
                                   'billing_country_code': 'IT', 'billing_city': 'Civitella di Romagna',
@@ -121,7 +121,7 @@ CELL_FORMATTED_DATA = "[[CellData(value=29023751, field_type=FieldType.normal, f
                       "field_type=FieldType.normal, field_values=[]), CellData(value=3059 VA, " \
                       "field_type=FieldType.normal, field_values=[]), CellData(value=NL, field_type=FieldType.normal, " \
                       "field_values=[]), CellData(value=Rotterdam, field_type=FieldType.normal, field_values=[]), " \
-                      "CellData(value=+31620362424, field_type=FieldType.normal, field_values=[]), CellData(value=, " \
+                      "CellData(value=+31620362424, field_type=FieldType.normal, field_values=[]), CellData(value=Arthur, " \
                       "field_type=FieldType.normal, field_values=[]), CellData(value=Kluin, " \
                       "field_type=FieldType.normal, field_values=[]), CellData(value=MALE, " \
                       "field_type=FieldType.normal, field_values=[]), CellData(value=Laan van avant-garde, " \
@@ -172,7 +172,7 @@ CELL_FORMATTED_DATA = "[[CellData(value=29023751, field_type=FieldType.normal, f
                       "field_values=[]), CellData(value=47012, field_type=FieldType.normal, field_values=[]), " \
                       "CellData(value=IT, field_type=FieldType.normal, field_values=[]), CellData(value=Civitella di " \
                       "Romagna, field_type=FieldType.normal, field_values=[]), CellData(value=3510098704, " \
-                      "field_type=FieldType.normal, field_values=[]), CellData(value=, field_type=FieldType.normal, " \
+                      "field_type=FieldType.normal, field_values=[]), CellData(value=Alioune, field_type=FieldType.normal, " \
                       "field_values=[]), CellData(value=Diaw, field_type=FieldType.normal, field_values=[]), " \
                       "CellData(value=MALE, field_type=FieldType.normal, field_values=[]), CellData(value=Viale Roma, " \
                       "field_type=FieldType.normal, field_values=[]), CellData(value=35, field_type=FieldType.normal, " \
