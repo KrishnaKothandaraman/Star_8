@@ -5,7 +5,7 @@ from typing import List, Dict
 from unittest.mock import patch, MagicMock
 
 import pytest
-
+import difflib
 from core.google_services.googleSheetsService import GoogleSheetsService
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.rfclient import RefurbedClient
@@ -87,6 +87,7 @@ def test_batchUpdateGoogleSheetWithOrderIDs_invalid_auth_token():
     assert response.json == {'type': 'fail', 'message': 'Incorrect auth token provided'}
 
 
+@unittest.skip("Removed 10 order limit")
 def test_batchUpdateGoogleSheetWithOrderIDs_with_more_than_10_orders_returning_error():
     # Create a test client using the Flask app
     client = app.test_client()
@@ -266,4 +267,12 @@ def test_update_sheet_with_new_orders():
         result = update_sheet_with_new_orders(rf_orders, bm_orders, RFAPIInstance, BMAPIInstance,
                                               mock_get_col_data)
         expected_result = sample_data.CELL_FORMATTED_DATA
+        # for i, s in enumerate(difflib.ndiff(str(result), expected_result)):
+        #     if s[0] == ' ':
+        #         continue
+        #     elif s[0] == '-':
+        #         print(u'Delete "{}" from position {}'.format(s[-1], i))
+        #     elif s[0] == '+':
+        #         print(u'Add "{}" to position {}'.format(s[-1], i))
+        # print()
         assert str(result) == expected_result
