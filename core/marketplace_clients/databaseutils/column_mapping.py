@@ -71,7 +71,7 @@ columnMapping = {
         },
         "billing_first_name": {
             "BackMarket": "billing_address/first_name",
-            "Refurbed": "invoice_address/email",
+            "Refurbed": "invoice_address/first_name",
         },
         "billing_last_name": {
             "BackMarket": "billing_address/last_name",
