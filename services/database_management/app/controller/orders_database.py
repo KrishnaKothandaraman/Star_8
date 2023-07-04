@@ -173,8 +173,8 @@ def batchUpdateGoogleSheetWithOrderIDs():
         rf_orderIDs = body["rf_orders"]
         bm_orderIDs = body["bm_orders"]
         # if each of these are above length 10, raise exception
-        if len(rf_orderIDs) > 10 or len(bm_orderIDs) > 10:
-            raise ResourceExhaustedException('Keep orders under 10 per marketplace in each request!')
+        # if len(rf_orderIDs) > 10 or len(bm_orderIDs) > 10:
+        #     raise ResourceExhaustedException('Keep orders under 10 per marketplace in each request!')
 
         rf_orders = get_rf_orders_from_marketplace(RFAPIInstance, rf_orderIDs)
         bm_orders = get_bm_orders_from_marketplace(BMAPIInstance, bm_orderIDs)
