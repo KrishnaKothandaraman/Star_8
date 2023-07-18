@@ -87,7 +87,7 @@ class TestRefurbedClient(unittest.TestCase):
             },
             {
                 "skuType": "reference",
-                "sku": "002351",
+                "sku": "002479",
                 "amount": 1,
                 "price": 2
             }
@@ -117,7 +117,7 @@ class TestRefurbedClient(unittest.TestCase):
             },
             {
                 "skuType": "reference",
-                "sku": "002351",
+                "sku": "002479",
                 "amount": 1,
                 "price": 2
             }
@@ -147,7 +147,7 @@ class TestRefurbedClient(unittest.TestCase):
             },
             {
                 "skuType": "reference",
-                "sku": "002351",
+                "sku": "002479",
                 "amount": 1,
                 "price": 2
             }
@@ -177,7 +177,7 @@ class TestRefurbedClient(unittest.TestCase):
             },
             {
                 "skuType": "reference",
-                "sku": "002351",
+                "sku": "002479",
                 "amount": 1,
                 "price": 2
             }
