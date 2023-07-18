@@ -62,7 +62,7 @@ class BackMarketClient(MarketPlaceClient):
             elif "eus" in swdModelName and any(substr.lower() in swdModelName for substr in ("iPad 7", "iPad 6")):
                 adapterItem = [{
                     "skuType": "reference",
-                    "sku": "002351",
+                    "sku": "002479",
                     "amount": quantity,
                     "price": 2
                 }]
@@ -280,7 +280,6 @@ class BackMarketClient(MarketPlaceClient):
         print("BM Done!")
         return await resp
 
-
 # async def test_listing(sku):
 #     bm = BackMarketClient()
 #     async with aiohttp.ClientSession() as clientSes:
@@ -295,4 +294,3 @@ class BackMarketClient(MarketPlaceClient):
 #     #
 #     #     # print(bm.getOrderByID("25923025"))
 #     asyncio.run(test_listing(("listing_id", "2826949")))
-
