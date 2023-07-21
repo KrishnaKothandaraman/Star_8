@@ -231,7 +231,7 @@ def updateGoogleSheet():
         numberOfDaysToUpdate = body["days"] if "days" in body else 0
 
         if "single_order_id" in body:
-            recordsUpdated = 1
+            recordsUpdated = [1]
             newRecordsAdded = performAddNewOrdersUpdate(service=service,
                                                         BMAPIInstance=BMAPIInstance,
                                                         RFAPIInstance=RFAPIInstance,
@@ -253,7 +253,6 @@ def updateGoogleSheet():
         end = time.time()
 
         print(f"Time taken to handle this request {end - start}")
-
         return make_response(jsonify({"type": "success",
                                       "message": f"Added {newRecordsAdded} records! Updated {len(recordsUpdated)} records!"
                                       }),
