@@ -3,9 +3,11 @@ import traceback
 import werkzeug.exceptions
 import services.database_management.app.controller.utils.swd_utils as swd_utils
 import services.database_management.app.controller.utils.general_utils as general_utils
+import services.database_management.app.controller.utils.repair_apps_utils as repair_apps_utils
 from typing import Tuple, List, Optional, Dict, Literal
 from flask import make_response, jsonify, request
-from core.custom_exceptions.general_exceptions import GenericAPIException, IncorrectAuthTokenException
+from core.custom_exceptions.general_exceptions import GenericAPIException, IncorrectAuthTokenException, \
+    StockAllocationFailedException
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
@@ -19,61 +21,58 @@ APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 sku_pair = Dict[Literal["old_sku", "new_sku"], str]
 
 
-def processNewOrders(orders: List, MarketClient: MarketPlaceClient, replaced_sku: Optional[sku_pair] = None) -> int:
+def processNewOrders(orders: List, client: MarketPlaceClient, replaced_sku: Optional[sku_pair] = None) -> int:
     """
     Performs logic to loop through orders and create SWD orders if stock exists
     :param orders: List of orders
-    :param MarketClient: Marketplace that the orders are from
+    :param client: Marketplace that the orders are from
     :param replaced_sku: A pair of old_sku new_sku values
     :return:
     """
-    updateCounter = 0
+    update_counter = 0
     for order in orders:
-        formattedOrder = MarketClient.convertOrderToSheetColumns(order)[0]
+        formatted_order = client.convertOrderToSheetColumns(order)[0]
         # remoteCheckCode = swd_utils.performRemoteCheck(country=formattedOrder["shipping_country_code"],
         #                                                postal_code=formattedOrder["shipping_postal_code"],
         #                                                shipper=formattedOrder["shipper"].split(" ")[0])
-        stockExists, swdModelName, stockAmount = True, "", ""
 
-        formattedOrder["shipper"] = general_utils.getShipperName(price=float(formattedOrder["total_charged"]),
-                                                                 chosenShipperName=formattedOrder["shipper"],
-                                                                 country_code=formattedOrder["shipping_country_code"])
-        print(
-            f"For {formattedOrder['order_id']} to country {formattedOrder['shipping_country_code']}, set shipper to {formattedOrder['shipper']}")
+        formatted_order["shipper"] = general_utils.getShipperName(price=float(formatted_order["total_charged"]),
+                                                                  chosenShipperName=formatted_order["shipper"],
+                                                                  country_code=formatted_order["shipping_country_code"])
 
-        orderItems = MarketClient.getOrderItems(order)
-        swdModelNames: List[str] = []
+        order_items = client.getOrderItems(order)
+        current_order_id = formatted_order['order_id']
+        order_created = False
 
-        for orderline in orderItems:
-            listing = MarketClient.getSku(orderline)
-            stockExists, swdModelName, _ = swd_utils.performSWDStockCheck(listing)
-            swdModelNames.append(swdModelName)
-            if not stockExists:
-                general_utils.updateAppSheetWithRows(rows=[{"order_id": MarketClient.getOrderID(order),
-                                                            "Note": f"This Over _sell  {listing}  need ask the Buyer change to "
-                                                                    f"other: / some Stock waiting Book in / "
-                                                            }]
-                                                     )
-                break
+        stock_allocated, swd_model_names = swd_utils.perform_swd_stock_check_for_order_items(client, order_items)
 
-        # else here means the orderline loop was excited normally. No break
-        else:
-            print(f"All stock exists for order {swdModelName}")
-            SWDItemsBody = MarketClient.generateItemsBodyForSWDCreateOrderRequest(orderItems, swdModelNames)
-            createOrderResp = swd_utils.performSWDCreateOrder(formattedOrder, SWDItemsBody)
-            print(f"Create order resp code: {createOrderResp.status_code}")
-            if createOrderResp.status_code != 201:
-                print(f"Created order failed: {createOrderResp.json()}")
-                general_utils.updateAppSheetWithRows(rows=[{"order_id": formattedOrder["order_id"],
-                                                            "Note": f"Shop we do add order failed. Error code: {createOrderResp.status_code}"
-                                                                    f",Error message: {createOrderResp.reason}"
-                                                            }]
-                                                     )
+        if stock_allocated:
+            """Stock allocated for order in SWD successfully"""
+            print(f"Stock exists for order {current_order_id} in SWD")
+            swd_items_body = client.generateItemsBodyForSWDCreateOrderRequest(order_items, swd_model_names)
+            createOrderResp = swd_utils.performSWDCreateOrder(formatted_order, swd_items_body)
+            if createOrderResp.status_code == 201:
+                order_created = True
             else:
-                if replaced_sku:
-                    MarketClient.updateSkuOfOrder(order, replaced_sku["new_sku"], replaced_sku["old_sku"])
-                updateCounter += MarketClient.updateStateOfOrder(order, "NEW", None)
-    return updateCounter
+                print(f"Created order failed: Reason: {createOrderResp.reason}, JSON: {createOrderResp.json()}")
+        else:
+            try:
+                repair_apps_utils.allocate_stock_for_order_items(client, order)
+                order_created = True
+            except StockAllocationFailedException as e:
+                print(f"Stock allocation failed for order {current_order_id} with message: {e.args[0]}")
+                continue
+            except Exception as e:
+                print(f"Stock allocation failed for order {current_order_id} with message: {e.args[0]}")
+                traceback.print_exc()
+                continue
+
+        if order_created:
+            if replaced_sku:
+                client.updateSkuOfOrder(order, replaced_sku["new_sku"], replaced_sku["old_sku"])
+            update_counter += client.updateStateOfOrder(order, "NEW", None)
+
+    return update_counter
 
 
 def swdAddManualOrder():
