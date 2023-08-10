@@ -1,3 +1,5 @@
+import dataclasses
+import enum
 import json
 
 from core.custom_exceptions.google_service_exceptions import IncorrectSheetTitleException
@@ -7,13 +9,29 @@ import apiclient
 from googleapiclient.http import MediaIoBaseDownload
 from core.config.googleServiceConfiguration import GOOGLE_DRIVE_SERVICE_NAME, GOOGLE_SHEETS_SERVICE_NAME
 from core.google_services.googleAppServiceFactory import GoogleAppServiceFactory
-from services.database_management.app.controller.utils.inventory_utils import CellData, FieldType
 
 GOOGLE_SHEETS_STARTING_CELL = "A15"
 
 """
 Docs: https://googleapis.github.io/google-api-python-client/docs/dyn/sheets_v4.spreadsheets.html#getByDataFilter
 """
+
+
+class FieldType(enum.Enum):
+    normal = enum.auto()
+    dropdown = enum.auto()
+
+
+@dataclasses.dataclass
+class CellData:
+    value: str
+    field_type: FieldType
+    field_values: List[str]
+
+    def __init__(self, value, field_type, field_values):
+        self.value = value
+        self.field_type = field_type
+        self.field_values = field_values
 
 
 class GoogleSheetsService:

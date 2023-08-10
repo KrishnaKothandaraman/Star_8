@@ -12,6 +12,7 @@ from typing import Tuple, List
 from dotenv import load_dotenv
 
 from core.custom_exceptions.general_exceptions import GenericAPIException
+from core.marketplace_clients.clientinterface import MarketPlaceClient
 
 load_dotenv()
 
@@ -107,6 +108,19 @@ def getStockFromItems(items, sku):
     return False, "", ""
 
 
+def perform_swd_stock_check_for_order_items(client: MarketPlaceClient, items) -> Tuple[bool, List[str]]:
+    swd_model_names = []
+    for item in items:
+        listing = client.getSku(item)
+        stockExists, swdModelName, _ = performSWDStockCheck(listing)
+        if not stockExists:
+            return False, []
+
+        swd_model_names.append(swdModelName)
+
+    return True, swd_model_names
+
+
 def performSWDStockCheck(sku: str) -> Tuple[bool, str, str]:
     formData = {"auth": json.dumps(generateSWDAuthJson()),
                 "data": json.dumps({"reference": sku})}
@@ -135,6 +149,3 @@ def performSWDGetOrder(orderID: str) -> requests.Response:
 def performAuthTest() -> requests.Response:
     data = {"auth": json.dumps(generateSWDAuthJson())}
     return requests.post(url=f"{SWD_API_URL}/authTest", data=data)
-
-
-performSWDStockCheck("002475SL")

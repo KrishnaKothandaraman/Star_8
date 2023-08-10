@@ -14,7 +14,7 @@ from core.google_services.googleSheetsService import GoogleSheetsService
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
-from services.database_management.app.controller.utils.inventory_utils import CellData, FieldType
+from core.google_services.googleSheetsService import CellData, FieldType
 
 GOOGLE_DOCS_MIMETYPE = "application/vnd.google-apps.document"
 GOOGLE_SHEETS_MIMETYPE = "application/vnd.google-apps.spreadsheet"

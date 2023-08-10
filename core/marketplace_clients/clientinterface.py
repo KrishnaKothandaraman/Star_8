@@ -6,8 +6,6 @@ import requests
 from core.marketplace_clients.databaseutils.column_mapping import columnMapping
 import core.types.refurbedAPI as RFTypes
 from core.types.orderStateTypes import newStates
-from services.database_management.app.controller.utils.swd_utils import SWDShippingData
-
 
 class MarketPlaceClient:
     key: str
@@ -120,7 +118,7 @@ class MarketPlaceClient:
         return mapping and len(mapping) > 2 and mapping[:3] == "../"
 
     @staticmethod
-    def getBodyForUpdateStateToShippedRequest(shipping_data: SWDShippingData) -> dict:
+    def getBodyForUpdateStateToShippedRequest(shipping_data) -> dict:
         raise NotImplementedError
 
     def updateSkuOfOrder(self, order, old_sku, new_sku):
