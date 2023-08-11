@@ -436,7 +436,7 @@ class TestAppSheetAddOrder(unittest.TestCase):
 
         # Assert the mock request is called with the correct data
         expected_payload = {
-                "Action": "add",
+                "Action": "Add",
                 "Properties": {
                     "Locale": "en-US",
                     "Location": "47.623098, -122.330184",
@@ -462,6 +462,71 @@ class TestAppSheetAddOrder(unittest.TestCase):
                     }
                 ]
             }
+
+        mock_post.assert_called_once_with(url=mock_source.get_add_order_url_from_source(mock_source),
+                                          headers={'applicationAccessKey': APP_AUTH_TOKEN},
+                                          json=expected_payload)
+
+    @patch('services.database_management.app.controller.utils.repair_apps_utils.requests.post')
+    def test_create_order_in_repair_apps_multiple_items(self, mock_post):
+        # Define mock response
+        mock_response = unittest.mock.Mock()
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        # Define mock stock result
+        mock_stock_result = StockCheckResult(imei_list=['351166895223752', '381166885223752'],
+                                             sku_list=['002690SH', '002690SH'],
+                                             availability_result=StockCheckAvailabilityResult.FULLY_AVAILABLE)
+        order_json = \
+            json.loads(open("services/database_management/app/controller/tests/test_data/rf_orders.json").read())[0]
+
+        mock_formatted_order = RefurbedClient().convertOrderToSheetColumns(order_json)[0]
+        mock_source = Source.EUPurchase
+        # Call the function
+        create_order_in_repair_apps(mock_formatted_order, mock_stock_result, mock_source)
+
+        # Assert the mock request is called with the correct data
+        expected_payload = {
+            "Action": "Add",
+            "Properties": {
+                "Locale": "en-US",
+                "Location": "47.623098, -122.330184",
+                "Timezone": "Pacific Standard Time",
+                "UserSettings": {
+                    "Option 1": "value1",
+                    "Option 2": "value2"
+                }
+            },
+            "Rows": [
+                {
+                    "IMEI": "351166895223752",
+                    "order_id": "6335576",
+                    "first_name": "Arthur",
+                    "last_name": "Kluin",
+                    "street": "Laan van avant-garde",
+                    "street2": "458",
+                    "postal_code": "3059 VA",
+                    "country": "NL",
+                    "city": "Rotterdam",
+                    "phone": "+31620362424",
+                    "email": "arthur_kluin@hotmail.com"
+                },
+                {
+                    "IMEI": "381166885223752",
+                    "order_id": "6335576-2",
+                    "first_name": "Multiple order",
+                    "last_name": "Multiple order",
+                    "street": "Multiple order",
+                    "street2": "Multiple order",
+                    "postal_code": "Multiple order",
+                    "country": "Multiple order",
+                    "city": "Multiple order",
+                    "phone": "Multiple order",
+                    "email": "Multiple order"
+                }
+            ]
+        }
 
         mock_post.assert_called_once_with(url=mock_source.get_add_order_url_from_source(mock_source),
                                           headers={'applicationAccessKey': APP_AUTH_TOKEN},

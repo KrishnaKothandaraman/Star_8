@@ -7,13 +7,15 @@ import requests
 from dotenv import load_dotenv
 
 from core.custom_exceptions.general_exceptions import GetStockFromRepairAppsFailedException, \
-    StockAllocationFailedException, CreateOrderInRepairAppsFailedException
+    StockAllocationFailedException, CreateOrderInRepairAppsFailedException, GetTrackingDataFromAppsheetFailedException
 from core.marketplace_clients.clientinterface import MarketPlaceClient
+from core.marketplace_clients.rfclient import RefurbedClient
 from services.database_management.app.controller.utils import general_utils
 
 load_dotenv()
 
 AppSheetAccessKey = os.getenv("REPAIRAPPSACCESSKEY")
+APPSHEET_TRACKING_URL = "https://api.appsheet.com/api/v2/apps/8a2d0562-676f-4945-8f5b-8fb7f28e93d6/tables/Tracking/Find"
 
 
 class Source(enum.Enum):
@@ -120,7 +122,7 @@ def create_order_in_repair_apps(formatted_order, stock_result: StockCheckResult,
         "applicationAccessKey": AppSheetAccessKey
     }
     payload = {
-        "Action": "add",
+        "Action": "Add",
         "Properties": {
             "Locale": "en-US",
             "Location": "47.623098, -122.330184",
@@ -132,24 +134,40 @@ def create_order_in_repair_apps(formatted_order, stock_result: StockCheckResult,
         },
         "Rows": []
     }
-    for imei, sku in zip(stock_result.imei_list, stock_result.sku_list):
+    """
+    the current system does not support multiple orders with the same order id. Therefore orders with multiple
+    items will need the orderid to be of the form orderid, orderid-2, orderid-3, etc.
+    Multiple orderlines have to also say "Multiple order" as fields for all non imei or order_id fields
+    """
+    order_id_addition = ""
+    first_name, last_name, street, street2, postal_code, country, city, phone, email = \
+        formatted_order["shipping_first_name"], formatted_order["shipping_last_name"], \
+            formatted_order["shipping_address1"], formatted_order["shipping_address2"], \
+            formatted_order["shipping_postal_code"], formatted_order["shipping_country_code"], \
+            formatted_order["shipping_city"], formatted_order["shipping_phone_number"], \
+            formatted_order["customer_email"]
+    for i, (imei, sku) in enumerate(zip(stock_result.imei_list, stock_result.sku_list)):
         payload["Rows"].append({
             "IMEI": imei,
-            "order_id": formatted_order["order_id"],
-            "first_name": formatted_order["shipping_first_name"],
-            "last_name": formatted_order["shipping_last_name"],
-            "street": formatted_order["shipping_address1"],
-            "street2": formatted_order["shipping_address2"],
-            "postal_code": formatted_order["shipping_postal_code"],
-            "country": formatted_order["shipping_country_code"],
-            "city": formatted_order["shipping_city"],
-            "phone": formatted_order["shipping_phone_number"],
-            "email": formatted_order["customer_email"]
+            "order_id": formatted_order["order_id"] + order_id_addition,
+            "first_name": first_name,
+            "last_name": last_name,
+            "street": street,
+            "street2": street2,
+            "postal_code": postal_code,
+            "country": country,
+            "city": city,
+            "phone": phone,
+            "email": email
         })
-
+        order_id_addition = f"-{i + 2}"
+        first_name, last_name, street, street2, postal_code, country, city, phone, email = \
+            "Multiple order", "Multiple order", "Multiple order", "Multiple order", "Multiple order", \
+            "Multiple order", "Multiple order", "Multiple order", "Multiple order"
     resp = requests.post(url=url, headers=headers, json=payload)
     if resp.status_code != 200:
         raise CreateOrderInRepairAppsFailedException("Failed to create order in repair apps. Reason: %s" % resp.reason)
+    print(resp.status_code)
 
 
 def allocate_stock_for_order_items(client: MarketPlaceClient, order):
@@ -182,4 +200,33 @@ def allocate_stock_for_order_items(client: MarketPlaceClient, order):
             print("Unavailable in both")
             raise StockAllocationFailedException("Failed to allocate stock for order items")
         print("Resale fully available")
+
         create_order_in_repair_apps(formatted_order, resale_instock_result, Source.Resale)
+
+
+def get_tracking_data_from_appsheet(orderID: str):
+    payload = {
+        "Action": "Find",
+        "Properties": {
+            "Locale": "en-US",
+            "Location": "47.623098, -122.330184",
+            "Timezone": "Pacific Standard Time",
+            "UserSettings": {
+                "Option 1": "value1",
+                "Option 2": "value2"
+            }
+        },
+        "Rows": [{
+            "order_id": orderID
+        }]
+    }
+    headers = {
+        "applicationAccessKey": AppSheetAccessKey
+    }
+    resp = requests.post(url=APPSHEET_TRACKING_URL, headers=headers, json=payload)
+    if resp.status_code != 200:
+        raise GetTrackingDataFromAppsheetFailedException("Failed to get tracking data from appsheet."
+                                                         " Reason: %s" % resp.reason)
+    if len(resp.json()) == 0:
+        raise GetTrackingDataFromAppsheetFailedException("Order not shipped yet")
+    return resp.json()[0]

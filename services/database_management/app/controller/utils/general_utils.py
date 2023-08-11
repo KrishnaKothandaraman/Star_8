@@ -8,9 +8,82 @@ import requests
 import os
 from dotenv import load_dotenv
 
+from core.custom_exceptions.general_exceptions import NotifyDatabaseOfSalesFailedException
+
 load_dotenv()
 APP_SHEET_ACCESS_KEY = os.environ["APPSHEETACCESSKEY"]
+DB_URL = os.environ["DBURL"]
+ORM_USERID = os.environ["ORMUSERID"]
+ORM_ACCESSKEY = os.environ["ORMACCESSKEY"]
 URL = str
+
+
+class SaleData:
+    sku: str
+    quantity: int
+
+    def __init__(self, sku: str, quantity: int):
+        self.sku = sku
+        self.quantity = quantity
+
+    def __repr__(self):
+        return f"SaleData(sku={self.sku}, quantity={self.quantity})"
+
+
+class Sales:
+    sales: List[SaleData]
+
+    def __init__(self):
+        self.sales = []
+        self.db_url = DB_URL
+
+    def add_order_to_sales(self, formatted_orders):
+        for formatted_order in formatted_orders:
+            if self.contains_sku(formatted_order["sku"]):
+                self.increment_quantity(formatted_order["sku"], int(formatted_order["quantity"]))
+            else:
+                self.sales.append(SaleData(sku=formatted_order["sku"], quantity=int(formatted_order["quantity"])))
+
+    def increment_quantity(self, sku: str, quantity: int):
+        for sale in self.sales:
+            if sale.sku == sku:
+                sale.quantity += quantity
+
+    def contains_sku(self, sku: str) -> bool:
+        for sale in self.sales:
+            if sale.sku == sku:
+                return True
+        return False
+
+    def notify_database_of_sales(self):
+        if len(self.sales) == 0:
+            print("No sales to notify database of")
+            return
+
+        headers = {
+            "user-id": ORM_USERID,
+            "auth-key": ORM_ACCESSKEY
+        }
+        payload = {
+            "sales": [
+                {
+                    "sku": sale.sku,
+                    "quantity": sale.quantity
+                }
+                for sale in self.sales]
+        }
+        print(f"Sending payload: {payload} to {self.db_url} with headers: {headers}")
+        resp = requests.post(
+            url=self.db_url,
+            headers=headers,
+            json=payload
+        )
+
+        if resp.status_code != 200:
+            raise NotifyDatabaseOfSalesFailedException(f"Failed to notify database of sales. "
+                                                       f"Reason {resp.reason},"
+                                                       f" JSON: {resp.json()}")
+        print(f"Successfully notified database of sales")
 
 
 def updateAppSheetWithRows(rows: List):
@@ -36,6 +109,7 @@ def updateAppSheetWithRows(rows: List):
         print(f"Updated sheet! with {rows}. Response code {resp.status_code}")
     else:
         print(f"Update sheet failed! Code: {resp.status_code} message: {resp.reason}")
+
 
 # def getShipperName(price: float, chosenShipperName: str, country_code: str, remoteCheckCode):
 #     # last condition in the IF is to filter out any shippers such as UPS Express or DHL Express
