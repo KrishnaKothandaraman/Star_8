@@ -1,3 +1,4 @@
+import json
 import os
 import traceback
 import werkzeug.exceptions
@@ -7,7 +8,7 @@ import services.database_management.app.controller.utils.repair_apps_utils as re
 from typing import Tuple, List, Optional, Dict, Literal
 from flask import make_response, jsonify, request
 from core.custom_exceptions.general_exceptions import GenericAPIException, IncorrectAuthTokenException, \
-    StockAllocationFailedException
+    StockAllocationFailedException, NotifyDatabaseOfSalesFailedException
 from core.marketplace_clients.bmclient import BackMarketClient
 from core.marketplace_clients.clientinterface import MarketPlaceClient
 from core.marketplace_clients.rfclient import RefurbedClient
@@ -30,8 +31,10 @@ def processNewOrders(orders: List, client: MarketPlaceClient, replaced_sku: Opti
     :return:
     """
     update_counter = 0
+    sales = general_utils.Sales()
     for order in orders:
-        formatted_order = client.convertOrderToSheetColumns(order)[0]
+        formatted_orders = client.convertOrderToSheetColumns(order)
+        formatted_order = formatted_orders[0]
         # remoteCheckCode = swd_utils.performRemoteCheck(country=formattedOrder["shipping_country_code"],
         #                                                postal_code=formattedOrder["shipping_postal_code"],
         #                                                shipper=formattedOrder["shipper"].split(" ")[0])
@@ -71,6 +74,11 @@ def processNewOrders(orders: List, client: MarketPlaceClient, replaced_sku: Opti
             if replaced_sku:
                 client.updateSkuOfOrder(order, replaced_sku["new_sku"], replaced_sku["old_sku"])
             update_counter += client.updateStateOfOrder(order, "NEW", None)
+            sales.add_order_to_sales(formatted_orders)
+    try:
+        sales.notify_database_of_sales()
+    except NotifyDatabaseOfSalesFailedException as e:
+        print(e.args[0])
 
     return update_counter
 
