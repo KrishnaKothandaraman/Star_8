@@ -14,7 +14,6 @@ from services.database_management.app.controller.orders_database import batchUpd
     get_bm_orders_from_marketplace, get_rf_orders_from_marketplace, get_update_data_from_orders, \
     update_sheet_with_new_orders
 import services.database_management.app.controller.tests.test_data.sample_formatted_data as sample_data
-from services.database_management.app.controller.utils.inventory_utils import CellData, FieldType
 
 APP_AUTH_TOKEN = os.environ["APPAUTHTOKEN"]
 BM_ORDERS_JSON_FILEPATH = 'services/database_management/app/controller/tests/test_data/bm_orders.json'

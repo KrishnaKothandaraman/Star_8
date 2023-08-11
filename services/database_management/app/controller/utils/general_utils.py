@@ -15,7 +15,6 @@ APP_SHEET_ACCESS_KEY = os.environ["APPSHEETACCESSKEY"]
 DB_URL = os.environ["DBURL"]
 ORM_USERID = os.environ["ORMUSERID"]
 ORM_ACCESSKEY = os.environ["ORMACCESSKEY"]
-
 URL = str
 
 

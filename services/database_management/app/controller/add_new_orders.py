@@ -57,7 +57,8 @@ def processNewOrders(orders: List, client: MarketPlaceClient, replaced_sku: Opti
             if createOrderResp.status_code == 201:
                 order_created = True
             else:
-                print(f"Created order failed: Reason: {createOrderResp.reason}, JSON: {createOrderResp.json()}")
+                print(f"Created order failed Status: {createOrderResp.status_code} Reason: {createOrderResp.reason},"
+                      f" JSON: {createOrderResp.json()}")
         else:
             try:
                 repair_apps_utils.allocate_stock_for_order_items(client, order)

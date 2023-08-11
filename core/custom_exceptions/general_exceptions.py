@@ -27,3 +27,18 @@ class StockAllocationFailedException(Exception):
 class CreateOrderInRepairAppsFailedException(Exception):
     def __init__(self, message):
         super().__init__(message)
+
+
+class NotifyDatabaseOfSalesFailedException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class GetTrackingDataFromAppsheetFailedException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class OrderNotFoundException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
