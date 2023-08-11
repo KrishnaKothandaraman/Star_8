@@ -82,9 +82,9 @@ def get_stock_from_repair_apps(source: Source):
     return resp.json()
 
 
-def get_imei_for_item(sku, stock_list) -> Optional[str]:
+def get_imei_for_item(sku, stock_list, used_imeis: set) -> Optional[str]:
     for stock in stock_list:
-        if stock["SKU"] == sku:
+        if stock["SKU"] == sku and stock["IMEI"] not in used_imeis:
             return stock["IMEI"]
     return None
 
@@ -94,12 +94,14 @@ def perform_stock_check_in_repair_app(client: MarketPlaceClient, items, source: 
         eu_purchase_stock = get_stock_from_repair_apps(source)
         item_imei_list = []
         sku_list = []
+        used_imeis = set()
         """ TODO: loop through items and check stock. If so return True!"""
         for item in items:
             sku = client.getSku(item)
-            item_imei = get_imei_for_item(sku, eu_purchase_stock)
+            item_imei = get_imei_for_item(sku, eu_purchase_stock, used_imeis)
             if item_imei:
                 item_imei_list.append(item_imei)
+                used_imeis.add(item_imei)
                 sku_list.append(sku)
 
         if len(item_imei_list) == len(items):
