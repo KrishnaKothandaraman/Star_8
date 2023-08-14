@@ -59,6 +59,7 @@ def get_shipping_data_from_swd_for_order(formatted_orders) -> List[SWDShippingDa
         except IndexError:
             print(f"{orderID} was done using old API")
             continue
+        return shippingDataForOrderList
 
 
 def get_shipping_data_from_repair_apps(formatted_orders) -> List[SWDShippingData]:
