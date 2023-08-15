@@ -55,7 +55,6 @@ def get_shipping_data_from_swd_for_order(formatted_orders) -> List[SWDShippingDa
                     tracking_url=swdRespBody["shipping"][0]["tracking_url"],
                     is_multi_sku=True if len(set(item["serialnumber"])) > 1 else False
                 ))
-                break
         except IndexError:
             print(f"{orderID} was done using old API")
             continue
