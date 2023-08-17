@@ -66,7 +66,6 @@ def get_shipping_data_from_repair_apps(formatted_orders) -> List[SWDShippingData
     try:
         orderID = formatted_orders[0]["order_id"]
         tracking_data = get_tracking_data_from_appsheet(orderID)
-
         for order in formatted_orders:
             shipping_data.append(SWDShippingData(
                 order_id=orderID,
