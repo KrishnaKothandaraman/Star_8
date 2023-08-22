@@ -35,8 +35,10 @@ def get_shipping_data_from_swd_for_order(formatted_orders) -> List[SWDShippingDa
         return []
     processedSerialNumbers = set()
     shippingDataForOrderList: List[SWDShippingData] = []
+
     for item in swdRespBody["items"]:
         if not item["serialnumber"] or not item["picked"]:
+            print(f"Continuing {item['external_orderline_id']} because no serialnumber or not picked")
             continue
         try:
             # set because swd sometimes scan the same serialnumber twice
@@ -55,10 +57,11 @@ def get_shipping_data_from_swd_for_order(formatted_orders) -> List[SWDShippingDa
                     tracking_url=swdRespBody["shipping"][0]["tracking_url"],
                     is_multi_sku=True if len(set(item["serialnumber"])) > 1 else False
                 ))
+                break
         except IndexError:
             print(f"{orderID} was done using old API")
             continue
-        return shippingDataForOrderList
+    return shippingDataForOrderList
 
 
 def get_shipping_data_from_repair_apps(formatted_orders) -> List[SWDShippingData]:
@@ -102,7 +105,7 @@ def processPendingShipmentOrders(orders: List[dict], Client: MarketPlaceClient) 
                 print(f"Update tracking info for {shipping_data.order_id} failed. {resp.reason}")
 
             else:
-                print(f"Upload tracking info for {shipping_data.order_id} successful")
+                print(f"Upload tracking info for {shipping_data.order_id}, {shipping_data.item_id} successful")
                 updateCounter += 1
     return updateCounter
 
