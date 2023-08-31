@@ -67,7 +67,7 @@ class BackMarketClient(MarketPlaceClient):
                     "price": 2
                 }]
             elif "eus" in swdModelName and any(
-                    substr.lower() in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th")):
+                    substr.lower() in swdModelName for substr in ("iPad Pro", "iPad Air 4th", "iPad Air 5th", "iPad 10")):
                 adapterItem = [{
                     "skuType": "reference",
                     "sku": "002478",
