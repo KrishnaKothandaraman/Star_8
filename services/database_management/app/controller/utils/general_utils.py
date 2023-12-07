@@ -56,6 +56,8 @@ class Sales:
         return False
 
     def notify_database_of_sales(self):
+        # Depreciated. Moved to notify-sales endpoint of marketUpdateService
+        return
         if len(self.sales) == 0:
             print("No sales to notify database of")
             return
